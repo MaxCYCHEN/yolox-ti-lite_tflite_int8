@@ -1,3 +1,7 @@
+/tmp
+/saved_model
+*.npy
+
 ### Linux ###
 *~
 
