@@ -1,6 +1,6 @@
 # YOLOX-ti-lite Object Detector in TFLite
 
-This repository is based on [TexasInstruments/edgeai-yolox](https://github.com/TexasInstruments/edgeai-yolox).
+This repository is a fork of [TexasInstruments/edgeai-yolox](https://github.com/TexasInstruments/edgeai-yolox).
 
 Based on the TexasInstruments' repository, following new features and minor modification were added:
 - ONNX -> TFLite export with [PINTO0309/onnx2tf](https://github.com/PINTO0309/onnx2tf)
@@ -29,14 +29,14 @@ wget http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models/vision/detect
 
 ## Export PyTorch to ONNX
 
-Build and run `torch2onnx` Docker container.
+Build and run `torch2onnx` Docker container:
 
 ```bash
 docker compose build torch2onnx
 docker compose run --rm torch2onnx bash
 ```
 
-Note that `(torch2onnx)` in the code blocks below means you have to run the command in the `torch2onnx` container.
+Note that `(torch2onnx)` in the code blocks below means you have to run the command in `torch2onnx` container.
 
 Evaluate PyTorch model (optional):
 
@@ -75,14 +75,14 @@ Run inference on a sample image with ONNX (optional):
 
 ## Export ONNX to TFLite
 
-Build and run `onnx2tf` Docker container.
+Build and run `onnx2tf` Docker container:
 
 ```bash
 docker compose build onnx2tf
 docker compose run --rm onnx2tf bash
 ```
 
-Note that `(onnx2tf)` in the code blocks below means you have to run the command in the `onnx2tf` container.
+Note that `(onnx2tf)` in the code blocks below means you have to run the command in `onnx2tf` container.
 
 Generate calibration data from COCO train-set (can be skipped if you don't need quantized TFLite models):
 
