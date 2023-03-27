@@ -9,6 +9,10 @@ Based on the TexasInstruments' repository, following new features and minor modi
 
 <img src="assets/demo_tflite.png" width="800">
 
+## Pretrained models
+
+TFLite models exported with this repository are available from my [GoogleDrive](https://drive.google.com/drive/folders/1-FFT0CivxKLUHIRVY6Qdl8wKHb1Pb9rH).
+
 ## Requirements
 
 - Docker Compose
