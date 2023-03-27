@@ -37,7 +37,7 @@ def main():
         if i >= args.n_img:
             break
         img = cv2.imread(img_path)
-        img, _ = preprocess(img, (416, 416))
+        img, _ = preprocess(img, args.img_size)
         img = img[np.newaxis]
         calib_data.append(img)
     calib_data = np.vstack(calib_data)  # [n_img, img_size[0], img_size[1], 3]
