@@ -25,7 +25,7 @@ Download COCO dataset:
 ./scripts/get_coco.sh
 ```
 
-Download YOLOX-ti-lite (nano) pre-trained weight:
+Download YOLOX-nanoti-lite pretrained weight:
 
 ```bash
 wget http://software-dl.ti.com/jacinto7/esd/modelzoo/latest/models/vision/detection/coco/edgeai-yolox/yolox_nano_ti_lite_26p1_41p8_checkpoint.pth

@@ -1,4 +1,6 @@
 #!/bin/bash
+# reference:
+# https://github.com/DeNA/PyTorch_YOLOv3/blob/1a3cd6e465db0b67ab783d92076c6ebfae9359a2/requirements/getcoco.sh
 
 mkdir -p datasets/COCO
 cd datasets/COCO
