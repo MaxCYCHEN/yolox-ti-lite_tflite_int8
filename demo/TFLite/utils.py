@@ -2,7 +2,30 @@
 
 import cv2
 import numpy as np
+from PIL import Image
 
+def yolofastest_preprocess(ori_img, input_size):
+
+    
+    ori_img = Image.fromarray(ori_img)
+    ori_img.thumbnail(input_size)
+    
+    #print("thumbnail_image: {} {}".format(ori_img.size[0], ori_img.size[1]))
+    
+    delta_w = abs(input_size[0] - ori_img.size[0])
+    delta_h = abs(input_size[1] - ori_img.size[1])
+    resized_image = Image.new('RGB', input_size, (255, 255, 255, 0))
+    #print("resized_image: {} {}".format(resized_image.size[0], resized_image.size[1]))
+    
+    
+    resized_image.paste(ori_img, (int(delta_w / 2), int(delta_h / 2)))
+    #resized_image.show()
+
+    rgb_data = np.array(resized_image, dtype=np.float32)
+    #print(rgb_data.shape)
+    #cv2.imwrite(r'C:\Users\USER\Desktop\ML\yolox-ti-lite_tflite\tmp\tflite\test_pre.jpg', rgb_data)
+    
+    return rgb_data
 
 def preprocess(img, input_size):
     # reference:
@@ -39,16 +62,22 @@ def postprocess(outputs, img_size, p6=False):
 
     hsizes = [img_size[0] // stride for stride in strides]
     wsizes = [img_size[1] // stride for stride in strides]
+    #print(hsizes, wsizes)
 
     for hsize, wsize, stride in zip(hsizes, wsizes, strides):
         xv, yv = np.meshgrid(np.arange(wsize), np.arange(hsize))
+        #print("xv: {}".format(xv))
+        #print("yv: {}".format(yv))
         grid = np.stack((xv, yv), 2).reshape(1, -1, 2)
+        #print("grid: {} {}".format(grid, grid.shape))
         grids.append(grid)
         shape = grid.shape[:2]
         expanded_strides.append(np.full((*shape, 1), stride))
 
     grids = np.concatenate(grids, 1)
     expanded_strides = np.concatenate(expanded_strides, 1)
+    #print(grids.shape)
+    #print(expanded_strides.shape)
     outputs[..., :2] = (outputs[..., :2] + grids) * expanded_strides
     outputs[..., 2:4] = np.exp(outputs[..., 2:4]) * expanded_strides
 
@@ -149,6 +178,67 @@ def vis(img, boxes, scores, cls_ids, conf=0.5, class_names=None):
         cv2.putText(img, text, (x0, y0 + txt_size[1]), font, 0.4, txt_color, thickness=1)
 
     return img
+
+def yolofastest_postprocess(outputs, anchor, class_num, input_size, ori_img_size, threshold=0.3) -> list:
+    sigmoid = lambda x: 1 / (1 + np.exp(-x))
+    detection_res = []
+    num_anchor = int(len(anchor)/2)
+    resolution_height = outputs.shape[0]
+    resolution_width  = outputs.shape[1]
+    per_resolution_info = outputs.shape[2]
+
+    # 4 + 85n
+    #objectness = sigmoid(outputs[:,:,[4, 89, 174]])
+    objectness = sigmoid(outputs[:,:,[ x for x in range(4, int(per_resolution_info), int(per_resolution_info/num_anchor))]])
+    bbox_x = outputs[:,:,[ x for x in range(0, int(per_resolution_info), int(per_resolution_info/num_anchor))]]
+    bbox_y = outputs[:,:,[ x for x in range(1, int(per_resolution_info), int(per_resolution_info/num_anchor))]]
+    bbox_w = outputs[:,:,[ x for x in range(2, int(per_resolution_info), int(per_resolution_info/num_anchor))]] 
+    bbox_h = outputs[:,:,[ x for x in range(3, int(per_resolution_info), int(per_resolution_info/num_anchor))]]
+    
+    #print(objectness)
+    mask_matrix = objectness > threshold
+    
+    # Test
+    #print(mask_matrix)
+    #x = 0
+    #for i in np.nditer(mask_matrix):
+    #    if i == False:
+    #        x += 1
+    #print(x)        
+
+    for h in range(resolution_height):
+        for w in range(resolution_width):
+            for anc in range(num_anchor):
+                if mask_matrix[h, w, anc]:
+
+                    #if h == 8:
+                    #    print("h: {} w: {} anc: {} obj: {}".format(h, w, anc, outputs[h,w, 4+anc*85]))
+                    #print("h: {} w: {} anc: {} obj: {}".format(h, w, anc, objectness[h, w, anc]))
+                    det = {}
+                    det['objectness'] = objectness[h, w, anc]
+
+                    det['x'] = (sigmoid(bbox_x[h, w, anc]) + w) / resolution_width
+                    det['y'] = (sigmoid(bbox_y[h, w, anc]) + h) / resolution_height
+                    det['w'] = (np.exp(bbox_w[h, w, anc]) * anchor[anc * 2]) / input_size[1]
+                    det['h'] = (np.exp(bbox_h[h, w, anc]) * anchor[anc * 2 + 1]) / input_size[0]
+
+                    #for s in class_num:
+                    sig = sigmoid(outputs[h, w, 5+(class_num+5)*anc:(class_num+5)+(class_num+5)*anc]) * det['objectness']
+                    mask_classes = (sig > threshold).astype(int)
+                    det['sig'] = sig * mask_classes
+                    #det['sig'] = np.sort(sig)
+                    #print("{}, {}, {}: {}".format(h, w, anc, sig))
+
+                    #create yolo box
+                    det['x'] *= ori_img_size[1]
+                    det['y'] *= ori_img_size[0]
+                    det['w'] *= ori_img_size[1]
+                    det['h'] *= ori_img_size[0]
+
+                    detection_res.append(det)
+
+    return detection_res
+
 
 
 # reference:

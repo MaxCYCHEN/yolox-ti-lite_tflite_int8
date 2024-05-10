@@ -9,6 +9,9 @@ Based on the TexasInstruments' repository, following new features and minor modi
 
 <img src="assets/demo_tflite.png" width="800">
 
+- Add int8/f32 tflite mAP evaluating script: `demo\TFLite\tflite_eval` 
+- support models: yolox-nano-ti-tflite, yolo-fastest-v1.1(mAP is low, maybe some issues) 
+
 ## Pretrained models
 
 TFLite models exported with this repository are available from my [GoogleDrive](https://drive.google.com/drive/folders/1-FFT0CivxKLUHIRVY6Qdl8wKHb1Pb9rH).

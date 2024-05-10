@@ -1,0 +1,33 @@
+use yolox-ti-lite_tflite
+
+demo 1 pic:
+python tools/demo.py image -n yolox_nano_ti_lite -c yolox_nano_ti_lite_26p1_41p8_checkpoint.pth --path assets/dog.jpg --conf 0.25 --nms 0.45 --tsize 416 --save_result --device cpu
+
+train:
+python tools/train.py -f exps/default/yolox_nano_ti_lite.py -d 1 -b 32 --fp16 -o -c yolox_nano_ti_lite_26p1_41p8_checkpoint.pth
+python tools/train.py -f exps/default/yolox_nano_ti_lite.py -d 1 -b 16 --fp16 -o
+
+
+EVAL pytorch:
+python tools/eval.py -n yolox_nano_ti_lite -c yolox_nano_ti_lite_26p1_41p8_checkpoint.pth --conf 0.001
+
+Pytorch to ONNX:
+python tools/export_onnx.py -n yolox_nano_ti_lite -c yolox_nano_ti_lite_26p1_41p8_checkpoint.pth --output-name yolox_nano_ti_lite.onnx
+ONNX demo:
+python demo/ONNXRuntime/onnx_inference.py -m yolox_nano_ti_lite_0510.onnx -i assets/dog.jpg -o tmp/onnx/ -s 0.6 --input_shape 416,416 
+
+
+
+ONNX to tflite: (onnx2tf==1.8.1)
+cali data => 
+python demo/TFLite/generate_calib_data.py --img-size 416 416 --n-img 200 -o calib_data_416x416_n200.npy
+to tflite =>
+onnx2tf -i yolox_nano_ti_lite_0510.onnx -oiqt -qcind images calib_data_416x416_n200.npy "[[[[0,0,0]]]]" "[[[[1,1,1]]]]"
+
+New:(not work)
+onnx2tf -i YOLOX_outputs/nano/yolox_nano.onnx -oiqt
+onnx2tf -i YOLOX_outputs/nano/yolox_nano.onnx -oiqt -prf param_replacement.json
+
+
+
+
