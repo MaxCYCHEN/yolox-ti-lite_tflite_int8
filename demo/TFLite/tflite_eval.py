@@ -13,7 +13,7 @@ import cv2
 import numpy as np
 import tensorflow.lite as tflite
 
-from utils import COCO_CLASSES, multiclass_nms_class_aware, preprocess, postprocess, vis, yolofastest_preprocess
+from utils import COCO_CLASSES, multiclass_nms_class_aware, preprocess, postprocess, vis, yolofastest_preprocess, easy_preprocess
 from pycocotools.coco import COCO
 
 # ToDo, tmp global var
@@ -26,7 +26,9 @@ def parse_args():
         parser.add_argument('-v', '--val', default='..\edgeai-yolox\datasets\coco', help='path to validation dataset')
         #parser.add_argument('-v', '--val', default='datasets\coco_test_sp', help='path to validation dataset')
         parser.add_argument('-o', '--out-dir', default='tmp/tflite', help='path to output directory')
-        parser.add_argument('-s', '--score-thr', type=float, default=0.3, help='threshould to filter by scores')
+        parser.add_argument('-s', '--score-thr', type=float, default=0.001, help='threshould to filter by scores')
+        parser.add_argument('-pp', '--preprocess-way', default='yolox', const='yolox', nargs='?',
+                    choices=['yolox', 'cv2'], help='preprocess-way (default: %(default)s)')
         return parser.parse_args()
 
 class coco_format_dataset():
@@ -183,13 +185,6 @@ class coco_format_dataset():
                 
                 bboxes = output[:, 0:4]
     
-                # preprocessing: resize to original
-                img_h = ori_img[0]
-                img_w = ori_img[1]
-                scale = min(
-                    model_img_size[0] / float(img_h), model_img_size[1] / float(img_w)
-                )
-                bboxes = bboxes / scale
                 bboxes = self.xyxy2xywh(bboxes)
     
                 cls = output[:, 5]
@@ -252,12 +247,13 @@ def main():
     for cur_iter, (origin_img, file_name, info_imgs, ids) in enumerate(tqdm(my_dataset)):
         
         # preprocess
-        #print(origin_img.shape, origin_img.dtype)
-        img, ratio = preprocess(origin_img, model_img_size)
+        if (args.preprocess_way == 'cv2'):
+            img, ratio = easy_preprocess(origin_img, model_img_size)
+        else:    
+            img, ratio = preprocess(origin_img, model_img_size)
         img = img[np.newaxis].astype(np.float32)  # add batch dim
         
         if input_dtype == np.int8:
-            #print("input int8 converting:")
             img = img / input_scale + input_zero
             img = img.astype(np.int8)
         
@@ -270,7 +266,6 @@ def main():
         outputs = outputs[0]  # remove batch dim
     
         if output_dtype == np.int8:
-            #print("output int8 converting:")
             outputs = output_scale * (outputs.astype(np.float32) - output_zero)
         inference_time = (time.perf_counter() - start) * 1000 
     
@@ -283,17 +278,17 @@ def main():
         boxes_xyxy[:, 1] = boxes[:, 1] - boxes[:, 3] / 2.0
         boxes_xyxy[:, 2] = boxes[:, 0] + boxes[:, 2] / 2.0
         boxes_xyxy[:, 3] = boxes[:, 1] + boxes[:, 3] / 2.0
-        #boxes_xyxy /= ratio
-        #dets = multiclass_nms_class_aware(boxes_xyxy, scores, nms_thr=0.45, score_thr=args.score_thr)
-        dets = multiclass_nms_class_aware(boxes_xyxy, scores, nms_thr=0.65, score_thr=0.01)
-        #print("Output data shape: {}".format(dets.shape))
+
+        # resize to original
+        if (args.preprocess_way == 'cv2'):
+            boxes_xyxy[:, 0] = boxes_xyxy[:, 0]/ratio[1]
+            boxes_xyxy[:, 2] = boxes_xyxy[:, 2]/ratio[1]
+            boxes_xyxy[:, 1] = boxes_xyxy[:, 1]/ratio[0]
+            boxes_xyxy[:, 3] = boxes_xyxy[:, 3]/ratio[0]
+        else:    
+            boxes_xyxy /= ratio
         
-        # debug
-        #print("Inference: {0:.2f}ms".format(inference_time))
-        #dets = dets[0:1]
-        #print(dets)
-        #print(ratio)
-        #print(model_img_size, info_imgs, ids)
+        dets = multiclass_nms_class_aware(boxes_xyxy, scores, nms_thr=0.65, score_thr=args.score_thr)
 
         # single coco mAP eval
         data_list.extend(my_dataset.convert_to_coco_format([dets], model_img_size, [info_imgs], ids))
@@ -312,10 +307,6 @@ def main():
     # coco mAP eval
     *_, summary = my_dataset.evaluate_prediction(data_list)
     print(summary)
-
-
-    
-
 
 if __name__ == '__main__':
     main()

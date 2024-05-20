@@ -5,9 +5,10 @@ import cv2
 import numpy as np
 import tensorflow.lite as tflite
 
-from utils import COCO_CLASSES, multiclass_nms_class_aware, preprocess, postprocess, vis, yolofastest_postprocess, yolofastest_preprocess
+from utils import COCO_CLASSES, multiclass_nms_class_aware, preprocess, postprocess, vis, easy_preprocess, yolofastest_postprocess, yolofastest_preprocess
 
 import tensorflow as tf
+
 from tensorflow import keras
 
 def parse_args():
@@ -15,8 +16,11 @@ def parse_args():
     parser.add_argument('-m', '--model', required=True, help='path to .tflite model')
     parser.add_argument('-i', '--img', required=True, help='path to image file')
     parser.add_argument('-o', '--out-dir', default='tmp/tflite', help='path to output directory')
-    parser.add_argument('-s', '--score-thr', type=float, default=0.3, help='threshould to filter by scores')
-    parser.add_argument('-mt', '--model-type', default='yolox-n', const='yolox-n', nargs='?', choices=['yolox-n', 'yolof', 'h5'], help='yolof, yolox-n')
+    parser.add_argument('-s', '--score-thr', type=float, default=0.01, help='threshould to filter by scores')
+    parser.add_argument('-mt', '--model-type', default='cv2', const='cv2', nargs='?',
+                    choices=['yolox', 'cv2'], help='preprocess-way (default: %(default)s)')
+    parser.add_argument('-pp', '--preprocess-way', default='cv2', const='cv2', nargs='?',
+                    choices=['yolox', 'cv2'], help='preprocess-way (default: %(default)s)')
     return parser.parse_args()
 
 
@@ -26,7 +30,8 @@ def main():
     # https://github.com/PINTO0309/PINTO_model_zoo/blob/main/132_YOLOX/demo/tflite/yolox_tflite_demo.py
 
 
-    if args.model_type == 'h5': # for h5 model
+    # h5
+    if 0: # for h5 model
         model = tf.keras.models.load_model(r'yolo-fastest-1.1.h5')
         model.summary()
 
@@ -65,8 +70,12 @@ def main():
     origin_img_size = (origin_img.shape[0], origin_img.shape[1])
 
     if args.model_type == 'yolof':
-        #img, ratio = preprocess(origin_img, img_size)
-        img = yolofastest_preprocess(origin_img, img_size)
+
+        # preprocess
+        if (args.preprocess_way == 'cv2'):
+            img, ratio = easy_preprocess(origin_img, img_size)
+        else:    
+            img, ratio = preprocess(origin_img, img_size)
         img = img[np.newaxis].astype(np.float32)  # add batch dim
         
         
@@ -74,13 +83,10 @@ def main():
             img = img - 128
             img = img.astype(np.int8)
         
-        #    #print("input int8 converting:")
-        #    img = img / input_scale + input_zero
-        #    img = img.astype(np.int8)
         else:
             img = (img)/255
 
-        if args.model_type == 'h5': # for h5 model
+        if 0: # for h5 model
             predictions = model.predict(img)
             outputs_1 = np.array(predictions[0])[0]  # remove batch dim
             outputs_2 = np.array(predictions[1])[0]  # remove batch dim
@@ -100,11 +106,7 @@ def main():
             if input_dtype == np.int8:
                 outputs_1 = output_scale * (outputs_1.astype(np.float32) - output_zero)
                 outputs_2 = output_details[1]['quantization'][0] * (outputs_2.astype(np.float32) - output_details[1]['quantization'][1])
-        #print(outputs_1.shape)
-        #print(outputs_2.shape)
-        #print(len(COCO_CLASSES))
-        ori_img_h = origin_img.shape[0]
-        ori_img_w = origin_img.shape[1]
+        
         anchor1 = [12, 18,  37, 49,  52,132]
         anchor2 = [115, 73, 119,199, 242,238]
         num_boxs = len(anchor1)/2
@@ -112,14 +114,11 @@ def main():
         assert class_num==len(COCO_CLASSES), "The classes doesn't match with yolofastest output"
 
         
-        detection_res_list_0 = yolofastest_postprocess(outputs_1, anchor1, class_num, img_size, origin_img_size)
-        detection_res_list_1 = yolofastest_postprocess(outputs_2, anchor2, class_num, img_size, origin_img_size)
+        detection_res_list_0 = yolofastest_postprocess(outputs_1, anchor1, class_num, img_size, origin_img_size, args.preprocess_way, args.score_thr)
+        detection_res_list_1 = yolofastest_postprocess(outputs_2, anchor2, class_num, img_size, origin_img_size, args.preprocess_way, args.score_thr)
         detection_res_list_0.extend(detection_res_list_1)
 
         print(len(detection_res_list_0))
-        #print(detection_res_list_0)
-        #print(len(detection_res_list_1))
-        #print(detection_res_list_1)
 
         boxes_xyxy = np.ones((len(detection_res_list_0), 4))
         scores = np.zeros((len(detection_res_list_0), class_num))
@@ -132,7 +131,7 @@ def main():
             scores[idx, :] = det['sig']
             idx+=1
 
-        dets = multiclass_nms_class_aware(boxes_xyxy, scores, nms_thr=0.45, score_thr=0.01)
+        dets = multiclass_nms_class_aware(boxes_xyxy, scores, nms_thr=0.45, score_thr=args.score_thr)
 
         print(dets)
 
@@ -145,10 +144,11 @@ def main():
             origin_img = vis(origin_img, final_boxes, final_scores, final_cls_inds,
                              conf=args.score_thr, class_names=COCO_CLASSES)    
         os.makedirs(args.out_dir, exist_ok=True)
-        cv2.imwrite(r'stmp\tflite\output.jpg', origin_img)
+        cv2.imwrite(r'C:\Users\USER\Desktop\ML\yolox-ti-lite_tflite\tmp\tflite\output_yolof.jpg', origin_img)
 
     else:
-        img, ratio = preprocess(origin_img, img_size)
+        #img, ratio = preprocess(origin_img, img_size)
+        img, ratio = easy_preprocess(origin_img, img_size)
         img = img[np.newaxis].astype(np.float32)  # add batch dim
     
         if input_dtype == np.int8:
@@ -177,20 +177,27 @@ def main():
         boxes_xyxy[:, 2] = boxes[:, 0] + boxes[:, 2] / 2.0
         boxes_xyxy[:, 3] = boxes[:, 1] + boxes[:, 3] / 2.0
         #boxes_xyxy /= ratio
-        dets = multiclass_nms_class_aware(boxes_xyxy, scores, nms_thr=0.45, score_thr=args.score_thr)
+        dets = multiclass_nms_class_aware(boxes_xyxy, scores, nms_thr=0.65, score_thr=args.score_thr)
         print(dets)
     
         # visualize and save
         if dets is None:
             print("no object detected.")
         else:
+
+            #dets[:, :4] = dets[:, :4]/ratio # preprocess
+            dets[:, 0] = dets[:, 0]/ratio[1] # easy_preprocess
+            dets[:, 2] = dets[:, 2]/ratio[1] # easy_preprocess
+            dets[:, 1] = dets[:, 1]/ratio[0] # easy_preprocess
+            dets[:, 3] = dets[:, 3]/ratio[0] # easy_preprocess
+
             final_boxes, final_scores, final_cls_inds = dets[:, :4], dets[:, 4], dets[:, 5]
             origin_img = vis(origin_img, final_boxes, final_scores, final_cls_inds,
                              conf=args.score_thr, class_names=COCO_CLASSES)
     
         os.makedirs(args.out_dir, exist_ok=True)
         output_path = os.path.join(args.out_dir, args.img.split('/')[-1])
-        cv2.imwrite(r'tmp\tflite\output.jpg', origin_img)
+        cv2.imwrite(r'C:\Users\USER\Desktop\ML\yolox-ti-lite_tflite\tmp\tflite\output_yolox-n.jpg', origin_img)
 
 
 if __name__ == '__main__':

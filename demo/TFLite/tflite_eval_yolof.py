@@ -13,7 +13,7 @@ import cv2
 import numpy as np
 import tensorflow.lite as tflite
 
-from utils import COCO_CLASSES, multiclass_nms_class_aware, preprocess, postprocess, vis, yolofastest_preprocess, yolofastest_postprocess
+from utils import COCO_CLASSES, multiclass_nms_class_aware, preprocess, postprocess, vis, yolofastest_preprocess, yolofastest_postprocess, easy_preprocess
 from pycocotools.coco import COCO
 
 # ToDo, tmp global var
@@ -26,7 +26,9 @@ def parse_args():
         parser.add_argument('-v', '--val', default='..\edgeai-yolox\datasets\coco', help='path to validation dataset')
         #parser.add_argument('-v', '--val', default='datasets\coco_test_sp', help='path to validation dataset')
         parser.add_argument('-o', '--out-dir', default='tmp/tflite', help='path to output directory')
-        parser.add_argument('-s', '--score-thr', type=float, default=0.3, help='threshould to filter by scores')
+        parser.add_argument('-s', '--score-thr', type=float, default=0.001, help='threshould to filter by scores')
+        parser.add_argument('-pp', '--preprocess-way', default='cv2', const='cv2', nargs='?',
+                    choices=['yolox', 'cv2'], help='preprocess-way (default: %(default)s)')
         return parser.parse_args()
 
 class coco_format_dataset():
@@ -182,14 +184,7 @@ class coco_format_dataset():
                     continue
                 
                 bboxes = output[:, 0:4]
-    
-                # preprocessing: resize to original
-                #img_h = ori_img[0]
-                #img_w = ori_img[1]
-                #scale = min(
-                #    model_img_size[0] / float(img_h), model_img_size[1] / float(img_w)
-                #)
-                #bboxes = bboxes / scale
+
                 bboxes = self.xyxy2xywh(bboxes)
     
                 cls = output[:, 5]
@@ -252,22 +247,19 @@ def main():
     for cur_iter, (origin_img, file_name, info_imgs, ids) in enumerate(tqdm(my_dataset)):
         origin_img_size = (origin_img.shape[0], origin_img.shape[1])
 
-        #img, ratio = preprocess(origin_img, model_img_size)
-        img = yolofastest_preprocess(origin_img, model_img_size)
-        
+        # preprocess
+        if (args.preprocess_way == 'cv2'):
+            img, ratio = easy_preprocess(origin_img, model_img_size)
+        else:    
+            img, ratio = preprocess(origin_img, model_img_size)
         img = img[np.newaxis].astype(np.float32)  # add batch dim
         
         if input_dtype == np.int8:
             img = img - 128
             img = img.astype(np.int8)
-        
-        #    #print("input int8 converting:")
-        #    img = img / input_scale + input_zero
-        #    img = img.astype(np.int8)
         else:
             img = (img)/255
 
-        
         # run inference
         start = time.perf_counter()
         interpreter.set_tensor(input_details[0]['index'], img)
@@ -279,20 +271,14 @@ def main():
         if output_dtype == np.int8:
             outputs_1 = output_scale * (outputs_1.astype(np.float32) - output_zero)
             outputs_2 = output_details[1]['quantization'][0] * (outputs_2.astype(np.float32) - output_details[1]['quantization'][1])
-        #print(outputs_1.shape)
-        #print(outputs_2.shape)
-        #print(len(COCO_CLASSES))
-        ori_img_h = origin_img.shape[0]
-        ori_img_w = origin_img.shape[1]
         anchor1 = [12, 18,  37, 49,  52,132]
         anchor2 = [115, 73, 119,199, 242,238]
         num_boxs = len(anchor1)/2
         class_num = int((outputs_1.shape[2] / num_boxs) - 5)
         assert class_num==len(COCO_CLASSES), "The classes doesn't match with yolofastest output"
 
-        
-        detection_res_list_0 = yolofastest_postprocess(outputs_1, anchor1, class_num, model_img_size, origin_img_size)
-        detection_res_list_1 = yolofastest_postprocess(outputs_2, anchor2, class_num, model_img_size, origin_img_size)
+        detection_res_list_0 = yolofastest_postprocess(outputs_1, anchor1, class_num, model_img_size, origin_img_size, args.preprocess_way, args.score_thr)
+        detection_res_list_1 = yolofastest_postprocess(outputs_2, anchor2, class_num, model_img_size, origin_img_size, args.preprocess_way, args.score_thr)
         detection_res_list_0.extend(detection_res_list_1)
 
 
@@ -307,12 +293,7 @@ def main():
             scores[idx, :] = det['sig']
             idx+=1
 
-        dets = multiclass_nms_class_aware(boxes_xyxy, scores, nms_thr=0.65, score_thr=0.01)
-        
-        #print("Inference: {0:.2f}ms".format(inference_time))
-        #dets = np.concatenate(([[1.02412483e+02, 8.34888458e+01, 2.73776947e+02, 3.89458191e+02, 8.36849928e-01, 0.00000000e+00]], dets))
-        #print(dets)
-        #print(model_img_size, info_imgs, ids)
+        dets = multiclass_nms_class_aware(boxes_xyxy, scores, nms_thr=0.45, score_thr=args.score_thr)
 
         # single coco mAP eval
         data_list.extend(my_dataset.convert_to_coco_format([dets], model_img_size, [info_imgs], ids))
@@ -331,10 +312,6 @@ def main():
     # coco mAP eval
     *_, summary = my_dataset.evaluate_prediction(data_list)
     print(summary)
-
-
-    
-
 
 if __name__ == '__main__':
     main()

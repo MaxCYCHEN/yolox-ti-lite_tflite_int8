@@ -10,22 +10,31 @@ def yolofastest_preprocess(ori_img, input_size):
     ori_img = Image.fromarray(ori_img)
     ori_img.thumbnail(input_size)
     
-    #print("thumbnail_image: {} {}".format(ori_img.size[0], ori_img.size[1]))
-    
     delta_w = abs(input_size[0] - ori_img.size[0])
     delta_h = abs(input_size[1] - ori_img.size[1])
     resized_image = Image.new('RGB', input_size, (255, 255, 255, 0))
-    #print("resized_image: {} {}".format(resized_image.size[0], resized_image.size[1]))
-    
     
     resized_image.paste(ori_img, (int(delta_w / 2), int(delta_h / 2)))
     #resized_image.show()
 
     rgb_data = np.array(resized_image, dtype=np.float32)
-    #print(rgb_data.shape)
     #cv2.imwrite(r'C:\Users\USER\Desktop\ML\yolox-ti-lite_tflite\tmp\tflite\test_pre.jpg', rgb_data)
+
+    r = min(input_size[0] / rgb_data.shape[0], input_size[1] / rgb_data.shape[1])
     
     return rgb_data
+
+def easy_preprocess(img, input_size):
+    resized_img = cv2.resize(
+        img,
+        (int(input_size[0]), int(input_size[1])),
+        interpolation=cv2.INTER_LINEAR,
+    ).astype(np.uint8).astype(np.float32)
+
+    r = (input_size[0] / img.shape[0], input_size[1] / img.shape[1])
+
+    return resized_img, r
+
 
 def preprocess(img, input_size):
     # reference:
@@ -34,7 +43,7 @@ def preprocess(img, input_size):
     if len(img.shape) == 3:
         padded_img = np.ones((input_size[0], input_size[1], 3), dtype=np.uint8) * 114
     else:
-        padded_img = np.ones(input_size, dtype=np.uint8) * 114
+        padded_img = np.ones(input_size, dtype=np.uint8) * 114 
 
     r = min(input_size[0] / img.shape[0], input_size[1] / img.shape[1])
     resized_img = cv2.resize(
@@ -42,9 +51,12 @@ def preprocess(img, input_size):
         (int(img.shape[1] * r), int(img.shape[0] * r)),
         interpolation=cv2.INTER_LINEAR,
     ).astype(np.uint8)
-    padded_img[: int(img.shape[0] * r), : int(img.shape[1] * r)] = resized_img
 
+    padded_img[: int(img.shape[0] * r), : int(img.shape[1] * r)] = resized_img
+    
     padded_img = padded_img.astype(np.float32)
+    #cv2.imwrite(r'C:\Users\USER\Desktop\ML\yolox-ti-lite_tflite\tmp\tflite\test_pre_cv2.jpg', padded_img)
+
     return padded_img, r
 
 
@@ -62,17 +74,16 @@ def postprocess(outputs, img_size, p6=False):
 
     hsizes = [img_size[0] // stride for stride in strides]
     wsizes = [img_size[1] // stride for stride in strides]
-    #print(hsizes, wsizes)
 
     for hsize, wsize, stride in zip(hsizes, wsizes, strides):
         xv, yv = np.meshgrid(np.arange(wsize), np.arange(hsize))
-        #print("xv: {}".format(xv))
-        #print("yv: {}".format(yv))
-        grid = np.stack((xv, yv), 2).reshape(1, -1, 2)
-        #print("grid: {} {}".format(grid, grid.shape))
+        grid = np.stack((xv, yv), 2)
+        #print("grid before: {}".format(grid.shape))
+        grid = grid.reshape(1, -1, 2)
+        #print("grid after: {}".format(grid.shape))
         grids.append(grid)
         shape = grid.shape[:2]
-        expanded_strides.append(np.full((*shape, 1), stride))
+        expanded_strides.append(np.full((*shape, 1), stride))   
 
     grids = np.concatenate(grids, 1)
     expanded_strides = np.concatenate(expanded_strides, 1)
@@ -152,34 +163,34 @@ def vis(img, boxes, scores, cls_ids, conf=0.5, class_names=None):
         box = boxes[i]
         cls_id = int(cls_ids[i])
         score = scores[i]
-        if score < conf:
-            continue
-        x0 = int(box[0])
-        y0 = int(box[1])
-        x1 = int(box[2])
-        y1 = int(box[3])
-
-        color = (_COLORS[cls_id] * 255).astype(np.uint8).tolist()
-        text = '{}:{:.1f}%'.format(class_names[cls_id], score * 100)
-        txt_color = (0, 0, 0) if np.mean(_COLORS[cls_id]) > 0.5 else (255, 255, 255)
-        font = cv2.FONT_HERSHEY_SIMPLEX
-
-        txt_size = cv2.getTextSize(text, font, 0.4, 1)[0]
-        cv2.rectangle(img, (x0, y0), (x1, y1), color, 2)
-
-        txt_bk_color = (_COLORS[cls_id] * 255 * 0.7).astype(np.uint8).tolist()
-        cv2.rectangle(
-            img,
-            (x0, y0 + 1),
-            (x0 + txt_size[0] + 1, y0 + int(1.5*txt_size[1])),
-            txt_bk_color,
-            -1
-        )
-        cv2.putText(img, text, (x0, y0 + txt_size[1]), font, 0.4, txt_color, thickness=1)
+        if score > conf:
+       
+            x0 = int(box[0])
+            y0 = int(box[1])
+            x1 = int(box[2])
+            y1 = int(box[3])
+    
+            color = (_COLORS[cls_id] * 255).astype(np.uint8).tolist()
+            text = '{}:{:.1f}%'.format(class_names[cls_id], score * 100)
+            txt_color = (0, 0, 0) if np.mean(_COLORS[cls_id]) > 0.5 else (255, 255, 255)
+            font = cv2.FONT_HERSHEY_SIMPLEX
+    
+            txt_size = cv2.getTextSize(text, font, 0.4, 1)[0]
+            cv2.rectangle(img, (x0, y0), (x1, y1), color, 2)
+    
+            txt_bk_color = (_COLORS[cls_id] * 255 * 0.7).astype(np.uint8).tolist()
+            cv2.rectangle(
+                img,
+                (x0, y0 + 1),
+                (x0 + txt_size[0] + 1, y0 + int(1.5*txt_size[1])),
+                txt_bk_color,
+                -1
+            )
+            cv2.putText(img, text, (x0, y0 + txt_size[1]), font, 0.4, txt_color, thickness=1)
 
     return img
 
-def yolofastest_postprocess(outputs, anchor, class_num, input_size, ori_img_size, threshold=0.3) -> list:
+def yolofastest_postprocess(outputs, anchor, class_num, input_size, ori_img_size, pre_way, threshold) -> list:
     sigmoid = lambda x: 1 / (1 + np.exp(-x))
     detection_res = []
     num_anchor = int(len(anchor)/2)
@@ -195,24 +206,13 @@ def yolofastest_postprocess(outputs, anchor, class_num, input_size, ori_img_size
     bbox_w = outputs[:,:,[ x for x in range(2, int(per_resolution_info), int(per_resolution_info/num_anchor))]] 
     bbox_h = outputs[:,:,[ x for x in range(3, int(per_resolution_info), int(per_resolution_info/num_anchor))]]
     
-    #print(objectness)
-    mask_matrix = objectness > threshold
-    
-    # Test
-    #print(mask_matrix)
-    #x = 0
-    #for i in np.nditer(mask_matrix):
-    #    if i == False:
-    #        x += 1
-    #print(x)        
+    mask_matrix = objectness > threshold      
 
     for h in range(resolution_height):
         for w in range(resolution_width):
             for anc in range(num_anchor):
                 if mask_matrix[h, w, anc]:
 
-                    #if h == 8:
-                    #    print("h: {} w: {} anc: {} obj: {}".format(h, w, anc, outputs[h,w, 4+anc*85]))
                     #print("h: {} w: {} anc: {} obj: {}".format(h, w, anc, objectness[h, w, anc]))
                     det = {}
                     det['objectness'] = objectness[h, w, anc]
@@ -229,12 +229,23 @@ def yolofastest_postprocess(outputs, anchor, class_num, input_size, ori_img_size
                     #det['sig'] = np.sort(sig)
                     #print("{}, {}, {}: {}".format(h, w, anc, sig))
 
-                    #create yolo box
-                    det['x'] *= ori_img_size[1]
-                    det['y'] *= ori_img_size[0]
-                    det['w'] *= ori_img_size[1]
-                    det['h'] *= ori_img_size[0]
-
+                    # resize to original
+                    if (pre_way == 'cv2'):
+                        det['x'] *= ori_img_size[1]
+                        det['y'] *= ori_img_size[0]
+                        det['w'] *= ori_img_size[1]
+                        det['h'] *= ori_img_size[0]
+                    else:    
+                        if (input_size[0] / ori_img_size[0]) < (input_size[1] / ori_img_size[1]):
+                            det['x'] *= ori_img_size[0]
+                            det['y'] *= ori_img_size[0]
+                            det['w'] = det['w'] * ori_img_size[0] * input_size[1] / input_size[0]
+                            det['h'] = det['h'] * ori_img_size[0]
+                        else:
+                            det['x'] *= ori_img_size[1]
+                            det['y'] *= ori_img_size[1]
+                            det['w'] = det['w'] * ori_img_size[1]
+                            det['h'] = det['h'] * ori_img_size[1] * input_size[0] / input_size[1]
                     detection_res.append(det)
 
     return detection_res

@@ -11,7 +11,7 @@ from utils import preprocess
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--img-dir', default='/workdir/datasets/COCO/train2017/')
+    parser.add_argument('--img-dir', default='../edgeai-yolox/datasets/coco/train2017/')
     parser.add_argument('--img-size', type=int, nargs=2, default=[416, 416])
     parser.add_argument('--n-img', type=int, default=200)
     parser.add_argument('-o', '--out', default='calib_data.npy')
