@@ -1,4 +1,14 @@
-# YOLOX-ti-lite Object Detector in TFLite
+# YOLOX-ti-lite-nu for MCU with/wo NPU device
+ This repository is a fork of [TexasInstruments/edgeai-yolox](https://github.com/TexasInstruments/edgeai-yolox) and [motokimura/yolox-ti-lite_tflite](https://github.com/motokimura/yolox-ti-lite_tflite).
+
+ - add `exps\default\yolox_nano_ti_lite_nu.py` for 320X320 depthwise YOLOX-ti-lite version.
+ - Add int8/f32 tflite mAP evaluating script: `demo\TFLite\tflite_eval` 
+ - support models: tflite_yolox_nano_ti, tflite_yolofastest_v1(mAP is lower)
+ - Install steps:
+ - How to use: [yolox_ti-lite_cmd](https://github.com/MaxCYCHEN/yolox-ti-lite_tflite_int8/blob/main/tflite_yolox_nano_ti/yolox_ti-lite_cmd.txt)
+ - You can also reference the original readme below or [edgeai-yolox](https://github.com/TexasInstruments/edgeai-yolox)
+
+# YOLOX-ti-lite Object Detector in TFLite (original ver.)
 
 This repository is a fork of [TexasInstruments/edgeai-yolox](https://github.com/TexasInstruments/edgeai-yolox).
 
@@ -9,8 +19,6 @@ Based on the TexasInstruments' repository, following new features and minor modi
 
 <img src="assets/demo_tflite.png" width="800">
 
-- Add int8/f32 tflite mAP evaluating script: `demo\TFLite\tflite_eval` 
-- support models: yolox-nano-ti-tflite, yolo-fastest-v1.1(mAP is low, maybe some issues) 
 
 ## Pretrained models
 
