@@ -35,6 +35,8 @@ python demo\TFLite\tflite_eval.py -m tflite_yolox_nano_ti\320_DW\saved_model\yol
 
 test singl pic
 python demo\TFLite\tflite_inference.py -m tflite_yolox_nano_ti\320_DW\saved_model\yolox_nano_320_DW_ti_lite_full_integer_quant.tflite -s 0.4 -i assets\dog.jpg
+(yolofastest)
+python demo\TFLite\tflite_inference.py -m tflite_yolofastest_v1\yolo-fastest-1.1-coco80-int8.tflite -s 0.4 -i assets\dog.jpg -mt yolof
 
 gen image c file
 python demo/TFLite/gen_rgb_cpp.py --image_path assets/dog.jpg --source_folder_path assets/ --image_size 320 320

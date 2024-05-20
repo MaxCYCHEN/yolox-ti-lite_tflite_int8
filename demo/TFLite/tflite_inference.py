@@ -1,5 +1,6 @@
 import argparse
 import os
+from pathlib import Path
 
 import cv2
 import numpy as np
@@ -17,8 +18,8 @@ def parse_args():
     parser.add_argument('-i', '--img', required=True, help='path to image file')
     parser.add_argument('-o', '--out-dir', default='tmp/tflite', help='path to output directory')
     parser.add_argument('-s', '--score-thr', type=float, default=0.01, help='threshould to filter by scores')
-    parser.add_argument('-mt', '--model-type', default='cv2', const='cv2', nargs='?',
-                    choices=['yolox', 'cv2'], help='preprocess-way (default: %(default)s)')
+    parser.add_argument('-mt', '--model-type', default='yolof', const='yolof', nargs='?',
+                    choices=['yolox', 'yolof'], help='preprocess-way (default: %(default)s)')
     parser.add_argument('-pp', '--preprocess-way', default='cv2', const='cv2', nargs='?',
                     choices=['yolox', 'cv2'], help='preprocess-way (default: %(default)s)')
     return parser.parse_args()
@@ -143,8 +144,8 @@ def main():
             final_boxes, final_scores, final_cls_inds = det_ori_box, dets[:, 4], dets[:, 5]
             origin_img = vis(origin_img, final_boxes, final_scores, final_cls_inds,
                              conf=args.score_thr, class_names=COCO_CLASSES)    
-        os.makedirs(args.out_dir, exist_ok=True)
-        cv2.imwrite(r'C:\Users\USER\Desktop\ML\yolox-ti-lite_tflite\tmp\tflite\output_yolof.jpg', origin_img)
+        output_path = os.path.join(args.out_dir, Path(args.img).name)
+        cv2.imwrite(output_path, origin_img)
 
     else:
         #img, ratio = preprocess(origin_img, img_size)
@@ -196,8 +197,8 @@ def main():
                              conf=args.score_thr, class_names=COCO_CLASSES)
     
         os.makedirs(args.out_dir, exist_ok=True)
-        output_path = os.path.join(args.out_dir, args.img.split('/')[-1])
-        cv2.imwrite(r'C:\Users\USER\Desktop\ML\yolox-ti-lite_tflite\tmp\tflite\output_yolox-n.jpg', origin_img)
+        output_path = os.path.join(args.out_dir, Path(args.img).name)
+        cv2.imwrite(output_path, origin_img)
 
 
 if __name__ == '__main__':

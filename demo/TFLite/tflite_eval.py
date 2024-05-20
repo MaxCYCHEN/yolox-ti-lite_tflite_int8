@@ -292,17 +292,6 @@ def main():
 
         # single coco mAP eval
         data_list.extend(my_dataset.convert_to_coco_format([dets], model_img_size, [info_imgs], ids))
-        
-        # visualize and save
-        #if dets is None:
-        #    print("no object detected.")
-        #else:
-        #    det_ori_box = dets[:, :4] / ratio
-        #    final_boxes, final_scores, final_cls_inds = det_ori_box, dets[:, 4], dets[:, 5]
-        #    origin_img = vis(origin_img, final_boxes, final_scores, final_cls_inds,
-        #                     conf=args.score_thr, class_names=COCO_CLASSES)    
-        #os.makedirs(args.out_dir, exist_ok=True)
-        #cv2.imwrite(r'C:\Users\USER\Desktop\ML\yolox-ti-lite_tflite\tmp\tflite\outputGGG.jpg', origin_img)
 
     # coco mAP eval
     *_, summary = my_dataset.evaluate_prediction(data_list)
