@@ -60,6 +60,7 @@ class COCOEvaluator:
     def __init__(
         self,
         dataloader,
+        _classes: tuple,
         img_size: int,
         confthre: float,
         nmsthre: float,
@@ -81,6 +82,7 @@ class COCOEvaluator:
         self.img_size = img_size
         self.confthre = confthre
         self.nmsthre = nmsthre
+        self._classes = _classes
         self.num_classes = num_classes
         self.testdev = testdev
         self.per_class_mAP = per_class_mAP
@@ -254,7 +256,7 @@ class COCOEvaluator:
                 cocoEval.summarize()
             info += redirect_string.getvalue()
             if self.per_class_mAP:
-                info += "per class mAP:\n" + per_class_mAP_table(cocoEval)
+                info += "per class mAP:\n" + per_class_mAP_table(cocoEval, class_names=self._classes)
             return cocoEval.stats[0], cocoEval.stats[1], info
         else:
             return 0, 0, info

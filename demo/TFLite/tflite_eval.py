@@ -19,30 +19,38 @@ from pycocotools.coco import COCO
 # ToDo, tmp global var
 per_class_mAP = True
 
+def load_cocoformat_labels(anno_path):
+    coco = COCO(os.path.join("datasets", anno_path))
+    cats = coco.loadCats(coco.getCatIds())
+    _classes = tuple([c["name"] for c in cats])
+
+    return _classes
+
 def parse_args():
         parser = argparse.ArgumentParser()
         parser.add_argument('-m', '--model', required=True, help='path to .tflite model')
         parser.add_argument('-i', '--img', help='path to image file')
-        parser.add_argument('-v', '--val', default='..\edgeai-yolox\datasets\coco', help='path to validation dataset')
+        parser.add_argument('-v', '--val', default='datasets\coco', help='path to validation dataset')
         #parser.add_argument('-v', '--val', default='datasets\coco_test_sp', help='path to validation dataset')
         parser.add_argument('-o', '--out-dir', default='tmp/tflite', help='path to output directory')
         parser.add_argument('-s', '--score-thr', type=float, default=0.001, help='threshould to filter by scores')
         parser.add_argument('-pp', '--preprocess-way', default='yolox', const='yolox', nargs='?',
                     choices=['yolox', 'cv2'], help='preprocess-way (default: %(default)s)')
+        parser.add_argument("-a", "--anno_file", type=str, 
+                            default='medicine_coco/annotations/medicine_val.json', help="Path to annotation file.",)
         return parser.parse_args()
 
 class coco_format_dataset():
     def __init__(
         self,
         data_dir="datasets\coco_test_sp",
-        val_json_file="instances_val2017.json",
+        anno_file = "",
         img_size=(416, 416),
     ):
         self.img_size = img_size # This val isn't used in validation
         self.data_dir = data_dir
         self.img_dir_name = "val2017"
-        self.annotation_dir_name = "annotations"
-        self.gd_annotation_file = os.path.join(data_dir, self.annotation_dir_name, val_json_file)
+        self.gd_annotation_file = os.path.join("datasets", anno_file)
         self.coco = COCO(self.gd_annotation_file)
         self.img_ids = self.coco.getImgIds()
         self.class_ids = sorted(self.coco.getCatIds())
@@ -135,7 +143,7 @@ class coco_format_dataset():
         )
         return table
     
-    def evaluate_prediction(self, data_dict):
+    def evaluate_prediction(self, data_dict, _class_names):
            
             print("Evaluate in main process...")
     
@@ -165,7 +173,7 @@ class coco_format_dataset():
                     cocoEval.summarize()
                 info += redirect_string.getvalue()
                 if per_class_mAP:
-                    info += "per class mAP:\n" + self.per_class_mAP_table(cocoEval)
+                    info += "per class mAP:\n" + self.per_class_mAP_table(cocoEval, class_names=_class_names)
                 return cocoEval.stats[0], cocoEval.stats[1], info
             else:
                 return 0, 0, info
@@ -213,7 +221,7 @@ def main():
 
     # setup dataset
     data_list = []
-    my_dataset = coco_format_dataset(data_dir=args.val)
+    my_dataset = coco_format_dataset(data_dir=args.val, anno_file=args.anno_file)
 
     # prepare model
     interpreter = tflite.Interpreter(model_path=args.model)
@@ -294,7 +302,7 @@ def main():
         data_list.extend(my_dataset.convert_to_coco_format([dets], model_img_size, [info_imgs], ids))
 
     # coco mAP eval
-    *_, summary = my_dataset.evaluate_prediction(data_list)
+    *_, summary = my_dataset.evaluate_prediction(data_list, load_cocoformat_labels(args.anno_file))
     print(summary)
 
 if __name__ == '__main__':

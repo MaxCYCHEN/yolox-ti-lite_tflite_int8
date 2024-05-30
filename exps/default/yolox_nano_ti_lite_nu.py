@@ -12,6 +12,8 @@ from yolox.exp import Exp as MyExp
 class Exp(MyExp):
     def __init__(self):
         super(Exp, self).__init__()
+        # ---------------- model config ---------------- #
+        self.num_classes = 6
         self.depth = 0.33
         self.width = 0.25
         #self.input_size = (416, 416)
@@ -32,7 +34,7 @@ class Exp(MyExp):
 
         # --------------  training config --------------------- #
         self.warmup_epochs = 5
-        self.max_epoch = 300
+        self.max_epoch = 160
         # -----------------  testing config ------------------ #
         self.test_size = (320, 320)
 

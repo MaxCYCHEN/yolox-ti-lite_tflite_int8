@@ -9,8 +9,14 @@ import tensorflow.lite as tflite
 from utils import COCO_CLASSES, multiclass_nms_class_aware, preprocess, postprocess, vis, easy_preprocess, yolofastest_postprocess, yolofastest_preprocess
 
 import tensorflow as tf
+from pycocotools.coco import COCO
 
-from tensorflow import keras
+def load_cocoformat_labels(anno_path):
+    coco = COCO(os.path.join("datasets", anno_path))
+    cats = coco.loadCats(coco.getCatIds())
+    _classes = tuple([c["name"] for c in cats])
+
+    return _classes
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -18,13 +24,18 @@ def parse_args():
     parser.add_argument('-i', '--img', required=True, help='path to image file')
     parser.add_argument('-o', '--out-dir', default='tmp/tflite', help='path to output directory')
     parser.add_argument('-s', '--score-thr', type=float, default=0.01, help='threshould to filter by scores')
-    parser.add_argument('-mt', '--model-type', default='yolof', const='yolof', nargs='?',
+    parser.add_argument('-mt', '--model-type', default='yolox', const='yolox', nargs='?',
                     choices=['yolox', 'yolof'], help='preprocess-way (default: %(default)s)')
     parser.add_argument('-pp', '--preprocess-way', default='cv2', const='cv2', nargs='?',
                     choices=['yolox', 'cv2'], help='preprocess-way (default: %(default)s)')
+    parser.add_argument(
+        "-a",
+        "--anno_file",
+        type=str,
+        default='medicine_coco/annotations/medicine_train.json',
+        help="Path to annotation file.",
+    )
     return parser.parse_args()
-
-
 
 def main():
     # reference:
@@ -70,6 +81,9 @@ def main():
     origin_img = cv2.imread(args.img)
     origin_img_size = (origin_img.shape[0], origin_img.shape[1])
 
+    # load classes label
+    _classes = load_cocoformat_labels(args.anno_file)
+
     if args.model_type == 'yolof':
 
         # preprocess
@@ -112,7 +126,7 @@ def main():
         anchor2 = [115, 73, 119,199, 242,238]
         num_boxs = len(anchor1)/2
         class_num = int((outputs_1.shape[2] / num_boxs) - 5)
-        assert class_num==len(COCO_CLASSES), "The classes doesn't match with yolofastest output"
+        assert class_num==len(_classes), "The classes doesn't match with yolofastest output"
 
         
         detection_res_list_0 = yolofastest_postprocess(outputs_1, anchor1, class_num, img_size, origin_img_size, args.preprocess_way, args.score_thr)
@@ -143,7 +157,7 @@ def main():
             det_ori_box = dets[:, :4]
             final_boxes, final_scores, final_cls_inds = det_ori_box, dets[:, 4], dets[:, 5]
             origin_img = vis(origin_img, final_boxes, final_scores, final_cls_inds,
-                             conf=args.score_thr, class_names=COCO_CLASSES)    
+                             conf=args.score_thr, class_names=_classes)    
         output_path = os.path.join(args.out_dir, Path(args.img).name)
         cv2.imwrite(output_path, origin_img)
 
@@ -194,7 +208,7 @@ def main():
 
             final_boxes, final_scores, final_cls_inds = dets[:, :4], dets[:, 4], dets[:, 5]
             origin_img = vis(origin_img, final_boxes, final_scores, final_cls_inds,
-                             conf=args.score_thr, class_names=COCO_CLASSES)
+                             conf=args.score_thr, class_names=_classes)
     
         os.makedirs(args.out_dir, exist_ok=True)
         output_path = os.path.join(args.out_dir, Path(args.img).name)

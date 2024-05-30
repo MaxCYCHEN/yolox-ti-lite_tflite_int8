@@ -4,6 +4,7 @@
 
 import argparse
 import os
+from pathlib import Path
 
 import cv2
 import numpy as np
@@ -13,6 +14,15 @@ import onnxruntime
 from yolox.data.data_augment import preproc as preprocess
 from yolox.data.datasets import COCO_CLASSES
 from yolox.utils import mkdir, multiclass_nms, demo_postprocess, vis
+
+from pycocotools.coco import COCO
+
+def load_cocoformat_labels(anno_path):
+    coco = COCO(os.path.join("datasets", anno_path))
+    cats = coco.loadCats(coco.getCatIds())
+    _classes = tuple([c["name"] for c in cats])
+
+    return _classes
 
 
 def make_parser():
@@ -37,6 +47,13 @@ def make_parser():
         type=str,
         default='demo_output',
         help="Path to your output directory.",
+    )
+    parser.add_argument(
+        "-a",
+        "--anno_file",
+        type=str,
+        default='medicine_coco/annotations/medicine_train.json',
+        help="Path to annotations file.",
     )
     parser.add_argument(
         "-s",
@@ -96,12 +113,11 @@ if __name__ == '__main__':
     if dets is not None:
         final_boxes, final_scores, final_cls_inds = dets[:, :4], dets[:, 4], dets[:, 5]
         origin_img = vis(origin_img, final_boxes, final_scores, final_cls_inds,
-                         conf=args.score_thr, class_names=COCO_CLASSES)
+                         conf=args.score_thr, class_names=load_cocoformat_labels(args.anno_file))
 
     mkdir(args.output_dir)
-    output_path = os.path.join(args.output_dir, args.image_path.split("/")[-1])
+    output_path = os.path.join(args.output_dir, Path(args.image_path).name)
     cv2.imwrite(output_path, origin_img)
-
 
     if args.save_txt:  # Write to file in tidl dump format
         output_txt_path = os.path.join(os.path.dirname(output_path) , os.path.basename(output_path).split('.')[0] + '.txt')

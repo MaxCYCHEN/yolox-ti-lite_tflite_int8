@@ -318,12 +318,12 @@ class Exp(BaseExp):
             dataloader_kwargs["batch_size"] = 1
         val_loader = torch.utils.data.DataLoader(valdataset, **dataloader_kwargs)
 
-        return val_loader
+        return val_loader, valdataset._classes
 
     def get_evaluator(self, batch_size, is_distributed, testdev=False, legacy=False):
         from yolox.evaluators import COCOEvaluator, ObjectPoseEvaluator
 
-        val_loader = self.get_eval_loader(batch_size, is_distributed, testdev, legacy)
+        val_loader, _classes_tuple = self.get_eval_loader(batch_size, is_distributed, testdev, legacy)
         if self.object_pose:
             evaluator = ObjectPoseEvaluator(
                 dataloader=val_loader,
@@ -336,6 +336,7 @@ class Exp(BaseExp):
         else:
             evaluator = COCOEvaluator(
                 dataloader=val_loader,
+                _classes=_classes_tuple,
                 img_size=self.test_size,
                 confthre=self.test_conf,
                 nmsthre=self.nmsthre,
