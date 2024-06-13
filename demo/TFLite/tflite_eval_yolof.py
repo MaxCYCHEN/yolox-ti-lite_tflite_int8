@@ -19,8 +19,9 @@ from pycocotools.coco import COCO
 # ToDo, tmp global var
 per_class_mAP = True
 
-def load_cocoformat_labels(anno_path):
-    coco = COCO(os.path.join("datasets", anno_path))
+def load_cocoformat_labels(data_dir, anno_path):
+    anno_dir = "annotations"
+    coco = COCO(os.path.join(data_dir, anno_dir, anno_path))
     cats = coco.loadCats(coco.getCatIds())
     _classes = tuple([c["name"] for c in cats])
 
@@ -50,7 +51,8 @@ class coco_format_dataset():
         self.img_size = img_size # This val isn't used in validation
         self.data_dir = data_dir
         self.img_dir_name = "val2017"
-        self.gd_annotation_file = os.path.join("datasets", anno_file)
+        self.anno_dir = "annotations"
+        self.gd_annotation_file = os.path.join(self.data_dir, self.anno_dir, anno_file)
         self.coco = COCO(self.gd_annotation_file)
         self.img_ids = self.coco.getImgIds()
         self.class_ids = sorted(self.coco.getCatIds())
@@ -281,8 +283,8 @@ def main():
             outputs_2 = output_details[1]['quantization'][0] * (outputs_2.astype(np.float32) - output_details[1]['quantization'][1])
         #anchor1 = [12, 18,  37, 49,  52,132]
         #anchor2 = [115, 73, 119,199, 242,238]
-        anchor1 = [5, 36,  25, 24,  21, 32]
-        anchor2 = [26, 37,  37, 82,  59, 55]
+        anchor1 = [10, 21,  15, 15,  15, 22]
+        anchor2 = [20, 50,  37, 28,  31, 43]
 
         num_boxs = len(anchor1)/2
         class_num = int((outputs_1.shape[2] / num_boxs) - 5)
@@ -309,7 +311,7 @@ def main():
         data_list.extend(my_dataset.convert_to_coco_format([dets], model_img_size, [info_imgs], ids))
 
     # coco mAP eval
-    *_, summary = my_dataset.evaluate_prediction(data_list, load_cocoformat_labels(args.anno_file))
+    *_, summary = my_dataset.evaluate_prediction(data_list, load_cocoformat_labels(args.val, args.anno_file))
     print(summary)
 
 if __name__ == '__main__':

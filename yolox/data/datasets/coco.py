@@ -52,6 +52,7 @@ class COCODataset(Dataset):
         self.img_size = img_size
         self.preproc = preproc
         self.annotations = self._load_coco_annotations()
+        self.toRGB = True
         if cache:
             self._cache_images()
 
@@ -172,6 +173,9 @@ class COCODataset(Dataset):
 
         img = cv2.imread(img_file)
         assert img is not None
+
+        if self.toRGB:
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
         return img
 

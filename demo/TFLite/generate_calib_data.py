@@ -15,6 +15,7 @@ def parse_args():
     parser.add_argument('--img-size', type=int, nargs=2, default=[416, 416])
     parser.add_argument('--n-img', type=int, default=200)
     parser.add_argument('-o', '--out', default='calib_data.npy')
+    parser.add_argument("--no_torgb", action="store_true", help="convert from BGR to RGB")
     return parser.parse_args()
 
 
@@ -32,11 +33,16 @@ def main():
     random.seed(0)
     random.shuffle(img_paths)
 
+    if not args.no_torgb:
+        print("convert from BGR to RGB format!!")
+
     calib_data = []
     for i, img_path in enumerate(img_paths):
         if i >= args.n_img:
             break
         img = cv2.imread(img_path)
+        if not args.no_torgb:
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         img, _ = preprocess(img, args.img_size)
         img = img[np.newaxis]
         calib_data.append(img)

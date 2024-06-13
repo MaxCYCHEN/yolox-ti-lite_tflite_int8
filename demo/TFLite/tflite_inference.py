@@ -35,6 +35,8 @@ def parse_args():
         default='medicine_coco/annotations/medicine_train.json',
         help="Path to annotation file.",
     )
+    parser.add_argument('--all_pics', default=True, action="store_true", help="use all plots in folder")
+    parser.add_argument("--no_torgb", action="store_true", help="convert from BGR to RGB")
     return parser.parse_args()
 
 def main():
@@ -78,141 +80,169 @@ def main():
     b, h, w, c = input_shape
     img_size = (h, w)
 
-    origin_img = cv2.imread(args.img)
-    origin_img_size = (origin_img.shape[0], origin_img.shape[1])
-
     # load classes label
     _classes = load_cocoformat_labels(args.anno_file)
 
-    if args.model_type == 'yolof':
-
-        # preprocess
-        if (args.preprocess_way == 'cv2'):
-            img, ratio = easy_preprocess(origin_img, img_size)
-        else:    
-            img, ratio = preprocess(origin_img, img_size)
-        img = img[np.newaxis].astype(np.float32)  # add batch dim
+    dir_path = Path(args.img).parent
+    for filename in os.scandir(dir_path):
         
-        
-        if input_dtype == np.int8:
-            img = img - 128
-            img = img.astype(np.int8)
-        
+        if args.all_pics:
+            origin_img = cv2.imread(os.path.join(filename))
         else:
-            img = (img)/255
+            origin_img = cv2.imread(args.img)
+        
+        if not args.no_torgb:
+             origin_img = cv2.cvtColor(origin_img, cv2.COLOR_BGR2RGB)
 
-        if 0: # for h5 model
-            predictions = model.predict(img)
-            outputs_1 = np.array(predictions[0])[0]  # remove batch dim
-            outputs_2 = np.array(predictions[1])[0]  # remove batch dim
-            print(outputs_1.shape)
-            print(outputs_2.shape)
-            outputs_1.astype(np.float32)
-            outputs_2.astype(np.float32)
+        origin_img_size = (origin_img.shape[0], origin_img.shape[1])
+    
+        if args.model_type == 'yolof':
+    
+            # preprocess
+            if (args.preprocess_way == 'cv2'):
+                img, ratio = easy_preprocess(origin_img, img_size)
+            else:    
+                img, ratio = preprocess(origin_img, img_size)
+            img = img[np.newaxis].astype(np.float32)  # add batch dim
+            
+            
+            if input_dtype == np.int8:
+                img = img - 128
+                img = img.astype(np.int8)
+            
+            else:
+                img = (img)/255
+    
+            if 0: # for h5 model
+                predictions = model.predict(img)
+                outputs_1 = np.array(predictions[0])[0]  # remove batch dim
+                outputs_2 = np.array(predictions[1])[0]  # remove batch dim
+                print(outputs_1.shape)
+                print(outputs_2.shape)
+                outputs_1.astype(np.float32)
+                outputs_2.astype(np.float32)
+    
+            else:     
+                # run inference
+                interpreter.set_tensor(input_details[0]['index'], img)
+                interpreter.invoke()
+        
+                outputs_1 = interpreter.get_tensor(output_details[0]['index'])[0]  # remove batch dim
+                outputs_2 = interpreter.get_tensor(output_details[1]['index'])[0]  # remove batch dim
+                # int8
+                if input_dtype == np.int8:
+                    outputs_1 = output_scale * (outputs_1.astype(np.float32) - output_zero)
+                    outputs_2 = output_details[1]['quantization'][0] * (outputs_2.astype(np.float32) - output_details[1]['quantization'][1])
+            
+            anchor1 = [12, 18,  37, 49,  52,132]
+            anchor2 = [115, 73, 119,199, 242,238]
+            num_boxs = len(anchor1)/2
+            class_num = int((outputs_1.shape[2] / num_boxs) - 5)
+            assert class_num==len(_classes), "The classes doesn't match with yolofastest output"
+    
+            
+            detection_res_list_0 = yolofastest_postprocess(outputs_1, anchor1, class_num, img_size, origin_img_size, args.preprocess_way, args.score_thr)
+            detection_res_list_1 = yolofastest_postprocess(outputs_2, anchor2, class_num, img_size, origin_img_size, args.preprocess_way, args.score_thr)
+            detection_res_list_0.extend(detection_res_list_1)
+    
+            print(len(detection_res_list_0))
+    
+            boxes_xyxy = np.ones((len(detection_res_list_0), 4))
+            scores = np.zeros((len(detection_res_list_0), class_num))
+            idx = 0
+            for det in detection_res_list_0:
+                boxes_xyxy[idx, 0] = det['x'] - det['w'] / 2.0
+                boxes_xyxy[idx, 1] = det['y'] - det['h'] / 2.0
+                boxes_xyxy[idx, 2] = det['x'] + det['w'] / 2.0
+                boxes_xyxy[idx, 3] = det['y'] + det['h'] / 2.0
+                scores[idx, :] = det['sig']
+                idx+=1
+    
+            dets = multiclass_nms_class_aware(boxes_xyxy, scores, nms_thr=0.45, score_thr=args.score_thr)
+    
+            print(dets)
+    
+            # visualize and save
+            if dets is None:
+                print("no object detected.")
+            else:
+                det_ori_box = dets[:, :4]
+                final_boxes, final_scores, final_cls_inds = det_ori_box, dets[:, 4], dets[:, 5]
+                origin_img = vis(origin_img, final_boxes, final_scores, final_cls_inds,
+                                 conf=args.score_thr, class_names=_classes)
+                if not args.no_torgb:
+                    origin_img = cv2.cvtColor(origin_img, cv2.COLOR_RGB2BGR)
 
-        else:     
+                os.makedirs(args.out_dir, exist_ok=True)    
+
+                if args.all_pics:
+                    output_path = os.path.join(args.out_dir, Path(filename).name)
+                    cv2.imwrite(output_path, origin_img)
+                else:
+                    output_path = os.path.join(args.out_dir, Path(args.img).name)
+                    cv2.imwrite(output_path, origin_img)
+                    break
+    
+        else:
+            #img, ratio = preprocess(origin_img, img_size)
+            img, ratio = easy_preprocess(origin_img, img_size)
+            img = img[np.newaxis].astype(np.float32)  # add batch dim
+        
+            if input_dtype == np.int8:
+                #print("input int8 converting:")
+                img = img / input_scale + input_zero
+                img = img.astype(np.int8)
+        
             # run inference
             interpreter.set_tensor(input_details[0]['index'], img)
             interpreter.invoke()
     
-            outputs_1 = interpreter.get_tensor(output_details[0]['index'])[0]  # remove batch dim
-            outputs_2 = interpreter.get_tensor(output_details[1]['index'])[0]  # remove batch dim
-            # int8
-            if input_dtype == np.int8:
-                outputs_1 = output_scale * (outputs_1.astype(np.float32) - output_zero)
-                outputs_2 = output_details[1]['quantization'][0] * (outputs_2.astype(np.float32) - output_details[1]['quantization'][1])
+            outputs = interpreter.get_tensor(output_details[0]['index'])
+            outputs = outputs[0]  # remove batch dim
+    
+            if output_dtype == np.int8:
+                #print("output int8 converting:")
+                outputs = output_scale * (outputs.astype(np.float32) - output_zero)
         
-        anchor1 = [12, 18,  37, 49,  52,132]
-        anchor2 = [115, 73, 119,199, 242,238]
-        num_boxs = len(anchor1)/2
-        class_num = int((outputs_1.shape[2] / num_boxs) - 5)
-        assert class_num==len(_classes), "The classes doesn't match with yolofastest output"
-
+            # postprocess
+            preds = postprocess(outputs, (h, w))
+            boxes = preds[:, :4]
+            scores = preds[:, 4:5] * preds[:, 5:]
+            boxes_xyxy = np.ones_like(boxes)
+            boxes_xyxy[:, 0] = boxes[:, 0] - boxes[:, 2] / 2.0
+            boxes_xyxy[:, 1] = boxes[:, 1] - boxes[:, 3] / 2.0
+            boxes_xyxy[:, 2] = boxes[:, 0] + boxes[:, 2] / 2.0
+            boxes_xyxy[:, 3] = boxes[:, 1] + boxes[:, 3] / 2.0
+            #boxes_xyxy /= ratio
+            dets = multiclass_nms_class_aware(boxes_xyxy, scores, nms_thr=0.65, score_thr=args.score_thr)
+            print(dets)
         
-        detection_res_list_0 = yolofastest_postprocess(outputs_1, anchor1, class_num, img_size, origin_img_size, args.preprocess_way, args.score_thr)
-        detection_res_list_1 = yolofastest_postprocess(outputs_2, anchor2, class_num, img_size, origin_img_size, args.preprocess_way, args.score_thr)
-        detection_res_list_0.extend(detection_res_list_1)
-
-        print(len(detection_res_list_0))
-
-        boxes_xyxy = np.ones((len(detection_res_list_0), 4))
-        scores = np.zeros((len(detection_res_list_0), class_num))
-        idx = 0
-        for det in detection_res_list_0:
-            boxes_xyxy[idx, 0] = det['x'] - det['w'] / 2.0
-            boxes_xyxy[idx, 1] = det['y'] - det['h'] / 2.0
-            boxes_xyxy[idx, 2] = det['x'] + det['w'] / 2.0
-            boxes_xyxy[idx, 3] = det['y'] + det['h'] / 2.0
-            scores[idx, :] = det['sig']
-            idx+=1
-
-        dets = multiclass_nms_class_aware(boxes_xyxy, scores, nms_thr=0.45, score_thr=args.score_thr)
-
-        print(dets)
-
-        # visualize and save
-        if dets is None:
-            print("no object detected.")
-        else:
-            det_ori_box = dets[:, :4]
-            final_boxes, final_scores, final_cls_inds = det_ori_box, dets[:, 4], dets[:, 5]
-            origin_img = vis(origin_img, final_boxes, final_scores, final_cls_inds,
-                             conf=args.score_thr, class_names=_classes)    
-        output_path = os.path.join(args.out_dir, Path(args.img).name)
-        cv2.imwrite(output_path, origin_img)
-
-    else:
-        #img, ratio = preprocess(origin_img, img_size)
-        img, ratio = easy_preprocess(origin_img, img_size)
-        img = img[np.newaxis].astype(np.float32)  # add batch dim
+            # visualize and save
+            if dets is None:
+                print("no object detected.")
+            else:
     
-        if input_dtype == np.int8:
-            #print("input int8 converting:")
-            img = img / input_scale + input_zero
-            img = img.astype(np.int8)
+                #dets[:, :4] = dets[:, :4]/ratio # preprocess
+                dets[:, 0] = dets[:, 0]/ratio[1] # easy_preprocess
+                dets[:, 2] = dets[:, 2]/ratio[1] # easy_preprocess
+                dets[:, 1] = dets[:, 1]/ratio[0] # easy_preprocess
+                dets[:, 3] = dets[:, 3]/ratio[0] # easy_preprocess
     
-        # run inference
-        interpreter.set_tensor(input_details[0]['index'], img)
-        interpreter.invoke()
-
-        outputs = interpreter.get_tensor(output_details[0]['index'])
-        outputs = outputs[0]  # remove batch dim
-
-        if output_dtype == np.int8:
-            #print("output int8 converting:")
-            outputs = output_scale * (outputs.astype(np.float32) - output_zero)
-    
-        # postprocess
-        preds = postprocess(outputs, (h, w))
-        boxes = preds[:, :4]
-        scores = preds[:, 4:5] * preds[:, 5:]
-        boxes_xyxy = np.ones_like(boxes)
-        boxes_xyxy[:, 0] = boxes[:, 0] - boxes[:, 2] / 2.0
-        boxes_xyxy[:, 1] = boxes[:, 1] - boxes[:, 3] / 2.0
-        boxes_xyxy[:, 2] = boxes[:, 0] + boxes[:, 2] / 2.0
-        boxes_xyxy[:, 3] = boxes[:, 1] + boxes[:, 3] / 2.0
-        #boxes_xyxy /= ratio
-        dets = multiclass_nms_class_aware(boxes_xyxy, scores, nms_thr=0.65, score_thr=args.score_thr)
-        print(dets)
-    
-        # visualize and save
-        if dets is None:
-            print("no object detected.")
-        else:
-
-            #dets[:, :4] = dets[:, :4]/ratio # preprocess
-            dets[:, 0] = dets[:, 0]/ratio[1] # easy_preprocess
-            dets[:, 2] = dets[:, 2]/ratio[1] # easy_preprocess
-            dets[:, 1] = dets[:, 1]/ratio[0] # easy_preprocess
-            dets[:, 3] = dets[:, 3]/ratio[0] # easy_preprocess
-
-            final_boxes, final_scores, final_cls_inds = dets[:, :4], dets[:, 4], dets[:, 5]
-            origin_img = vis(origin_img, final_boxes, final_scores, final_cls_inds,
-                             conf=args.score_thr, class_names=_classes)
-    
-        os.makedirs(args.out_dir, exist_ok=True)
-        output_path = os.path.join(args.out_dir, Path(args.img).name)
-        cv2.imwrite(output_path, origin_img)
+                final_boxes, final_scores, final_cls_inds = dets[:, :4], dets[:, 4], dets[:, 5]
+                origin_img = vis(origin_img, final_boxes, final_scores, final_cls_inds,
+                                 conf=args.score_thr, class_names=_classes)
+                if not args.no_torgb:
+                    origin_img = cv2.cvtColor(origin_img, cv2.COLOR_RGB2BGR)
+        
+                os.makedirs(args.out_dir, exist_ok=True)
+                
+                if args.all_pics:
+                    output_path = os.path.join(args.out_dir, Path(filename).name)
+                    cv2.imwrite(output_path, origin_img)
+                else:
+                    output_path = os.path.join(args.out_dir, Path(args.img).name)
+                    cv2.imwrite(output_path, origin_img)
+                    break
 
 
 if __name__ == '__main__':

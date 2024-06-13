@@ -6,6 +6,7 @@ import io
 import contextlib
 import itertools
 from tqdm import tqdm
+from pathlib import Path
 
 from tabulate import tabulate
 
@@ -19,8 +20,9 @@ from pycocotools.coco import COCO
 # ToDo, tmp global var
 per_class_mAP = True
 
-def load_cocoformat_labels(anno_path):
-    coco = COCO(os.path.join("datasets", anno_path))
+def load_cocoformat_labels(data_dir, anno_path):
+    anno_dir = "annotations"
+    coco = COCO(os.path.join(data_dir, anno_dir, anno_path))
     cats = coco.loadCats(coco.getCatIds())
     _classes = tuple([c["name"] for c in cats])
 
@@ -34,10 +36,11 @@ def parse_args():
         #parser.add_argument('-v', '--val', default='datasets\coco_test_sp', help='path to validation dataset')
         parser.add_argument('-o', '--out-dir', default='tmp/tflite', help='path to output directory')
         parser.add_argument('-s', '--score-thr', type=float, default=0.001, help='threshould to filter by scores')
-        parser.add_argument('-pp', '--preprocess-way', default='yolox', const='yolox', nargs='?',
+        parser.add_argument('-pp', '--preprocess-way', default='cv2', const='cv2', nargs='?',
                     choices=['yolox', 'cv2'], help='preprocess-way (default: %(default)s)')
         parser.add_argument("-a", "--anno_file", type=str, 
-                            default='medicine_coco/annotations/medicine_val.json', help="Path to annotation file.",)
+                            default='medicine_val.json', help="Path to annotation file.",)
+        parser.add_argument("--no_torgb", action="store_true", help="convert from BGR to RGB")
         return parser.parse_args()
 
 class coco_format_dataset():
@@ -46,15 +49,18 @@ class coco_format_dataset():
         data_dir="datasets\coco_test_sp",
         anno_file = "",
         img_size=(416, 416),
+        no_torgb=False
     ):
         self.img_size = img_size # This val isn't used in validation
         self.data_dir = data_dir
         self.img_dir_name = "val2017"
-        self.gd_annotation_file = os.path.join("datasets", anno_file)
+        self.anno_dir = "annotations"
+        self.gd_annotation_file = os.path.join(self.data_dir, self.anno_dir, anno_file)
         self.coco = COCO(self.gd_annotation_file)
         self.img_ids = self.coco.getImgIds()
         self.class_ids = sorted(self.coco.getCatIds())
         self.annotations = self._load_coco_annotations()
+        self.no_torgb = no_torgb
 
     def _load_coco_annotations(self):
         return [self.load_anno_from_ids(_ids) for _ids in self.img_ids]
@@ -102,6 +108,8 @@ class coco_format_dataset():
         file_name = self.annotations[index][1]
         img_file = os.path.join(self.data_dir, self.img_dir_name, file_name)
         img = cv2.imread(img_file)
+        if not self.no_torgb:
+             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         assert img is not None
 
         return img
@@ -221,7 +229,7 @@ def main():
 
     # setup dataset
     data_list = []
-    my_dataset = coco_format_dataset(data_dir=args.val, anno_file=args.anno_file)
+    my_dataset = coco_format_dataset(data_dir=args.val, anno_file=args.anno_file, no_torgb=args.no_torgb)
 
     # prepare model
     interpreter = tflite.Interpreter(model_path=args.model)
@@ -302,7 +310,7 @@ def main():
         data_list.extend(my_dataset.convert_to_coco_format([dets], model_img_size, [info_imgs], ids))
 
     # coco mAP eval
-    *_, summary = my_dataset.evaluate_prediction(data_list, load_cocoformat_labels(args.anno_file))
+    *_, summary = my_dataset.evaluate_prediction(data_list, load_cocoformat_labels(args.val, args.anno_file))
     print(summary)
 
 if __name__ == '__main__':

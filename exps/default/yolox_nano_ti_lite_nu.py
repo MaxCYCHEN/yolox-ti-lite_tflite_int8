@@ -16,25 +16,22 @@ class Exp(MyExp):
         self.num_classes = 6
         self.depth = 0.33
         self.width = 0.25
-        #self.input_size = (416, 416)
         self.input_size = (320, 320)
         self.random_size = (10, 20)
         self.mosaic_scale = (0.5, 1.5)
-        #self.test_size = (416, 416)
-        self.test_size = (320, 320)
         self.mosaic_prob = 0.5
         self.enable_mixup = False
         self.exp_name = os.path.split(os.path.realpath(__file__))[1].split(".")[0]
         self.act = "relu"
 
         # Define yourself dataset path
-        self.data_dir = "../edgeai-yolox/datasets/coco"
-        self.train_ann = "instances_train2017.json"
-        self.val_ann = "instances_val2017.json"
+        self.data_dir = "datasets/medicinev2_coco"
+        self.train_ann = "medicinev2_train.json"
+        self.val_ann = "medicinev2_val.json"
 
         # --------------  training config --------------------- #
         self.warmup_epochs = 5
-        self.max_epoch = 160
+        self.max_epoch = 200
         # -----------------  testing config ------------------ #
         self.test_size = (320, 320)
 

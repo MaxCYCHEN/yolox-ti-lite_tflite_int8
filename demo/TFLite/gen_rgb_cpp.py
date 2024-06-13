@@ -43,7 +43,8 @@ parser.add_argument("--mode", type=int, nargs=1, help="0: image file mode. 1: tf
 parser.add_argument("--tfrecord", type=str, help="read which tfrecords",
                     default="test_images.tfrecords")
 parser.add_argument("--tfrd_num_cho", type=int, nargs=1, help="Choose how many plots to be converted to cpp.",
-                   default=5)                                        
+                   default=5)
+parser.add_argument("--no_torgb", action="store_true", help="convert from BGR to RGB")                                  
 args = parser.parse_args()
 
 env = Environment(loader=FileSystemLoader(os.path.join(os.path.dirname(__file__), 'templates')),
@@ -226,6 +227,9 @@ def main(args):
         try:
             #original_image = Image.open(filepath).convert("RGB")
             original_image = cv2.imread(filepath)
+            if not args.no_torgb:
+                print("convert from BGR to RGB format!!")
+                original_image = cv2.cvtColor(original_image, cv2.COLOR_BGR2RGB)
         except UnidentifiedImageError:
             print(f"-- Skipping file {filepath} due to unsupported image format.")
             continue

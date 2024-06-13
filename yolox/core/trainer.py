@@ -174,12 +174,14 @@ class Trainer:
         self.prefetcher = DataPrefetcher(self.train_loader)
         # max_iter means iters per epoch
         self.max_iter = len(self.train_loader)
+        logger.info("init prefetcher, {}".format(self.max_iter))
 
         self.lr_scheduler = self.exp.get_lr_scheduler(
             self.exp.basic_lr_per_img * self.args.batch_size, self.max_iter
         )
         if self.args.occupy:
             occupy_mem(self.local_rank)
+        logger.info("occupy")      
 
         if self.is_distributed:
             model = DDP(model, device_ids=[self.local_rank], broadcast_buffers=False)
@@ -188,6 +190,7 @@ class Trainer:
             self.ema_model = ModelEMA(model, 0.9998)
             self.ema_model.updates = self.max_iter * self.start_epoch
 
+        logger.info("model(print here for Prefetcher issue): ")  
         self.model = model
         self.model.train()
 
