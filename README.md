@@ -72,6 +72,17 @@ python tools/train.py -f exps/default/yolox_nano_ti_lite_nu.py -d 1 -b 64 --fp16
     ```bash
     python tools/yolo2coco.py --path <YOLO_FORMAT_DATASET>\train --output annotation_train.json
      ```
+### Windows Batch Script for Converting Pytorch to Deployment Format
+- This script will help you finish point 2 to pint 5, and of course you can manually execute the python & cmds below.
+- Update `yolox_convert`, for example:
+    ```bash
+    set MODEL_FILE_NAME=yolox_nano_ti_lite_nu_hg_150
+    set YOLOX_M_CONFIG=exps/default/yolox_nano_ti_lite_nu.py
+    set OUTPUT_DIR=YOLOX_outputs/yolox_nano_ti_lite_nu_hg_150
+
+    set TRAIN_DATASET=datasets/hagrid_coco/train2017
+    ```
+- Run `yolox_convert`
 ### 2. Evaluate Pytorch Model (Optional)
 ```bash
 python tools/eval.py -f <MODEL_CONFIG_FILE> -c <TRAINED_PYTORCH_MODEL> --conf 0.001
@@ -107,7 +118,7 @@ onnx2tf -i <ONNX_MODEL_PATH> -oiqt -qcind images <CALI_DATA_NPY_FILE> "[[[[0,0,0
 ```bash
 onnx2tf -i YOLOX_outputs/yolox_nano_ti_lite_nu/yolox_nano_nu_medicine.onnx -oiqt -qcind images YOLOX_outputs\yolox_nano_ti_lite_nu\calib_data_320x320_n200.npy "[[[[0,0,0]]]]" "[[[[1,1,1]]]]"
 ```
-### 5. Using Vela Compiler and Convert to Deplyment Format
+### 5. Use Vela Compiler and Convert to Deplyment Format
 - move the int8 tflite model to `vela\generated\` 
 - in `vela` and update `variables.bat`
     ```bash
@@ -142,4 +153,6 @@ python demo\TFLite\tflite_inference.py -m YOLOX_outputs\yolox_nano_ti_lite_nu\yo
 ```
 - The result images with bounding boxes will save in `tmp\tflite`
 
-
+## Inference code
+- The output file for deplyment is for example `yolox_nano_ti_lite_nu_full_integer_quant_vela.tflite.cc` and move it to bsp sample code to update new model.
+- MCU: [M55M1](https://github.com/OpenNuvoton/ML_M55M1_SampleCode/tree/master)
