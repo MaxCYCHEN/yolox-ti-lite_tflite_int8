@@ -35,7 +35,7 @@ def parse_args():
         default='medicine_coco/annotations/medicine_train.json',
         help="Path to annotation file.",
     )
-    parser.add_argument('--all_pics', default=True, action="store_true", help="use all plots in folder")
+    parser.add_argument('--all_pics', action="store_true", help="use all plots in folder")
     parser.add_argument("--no_torgb", action="store_true", help="convert from BGR to RGB")
     return parser.parse_args()
 

@@ -16,10 +16,10 @@ class Exp(MyExp):
         self.num_classes =11
         self.depth = 0.33
         self.width = 0.25
-        self.input_size = (224, 224)
+        self.input_size = (320, 320)
         self.random_size = (10, 20)
         self.mosaic_scale = (0.5, 1.5)
-        self.mosaic_prob = 0.2
+        self.mosaic_prob = 0.5
         self.enable_mixup = False
         self.exp_name = os.path.split(os.path.realpath(__file__))[1].split(".")[0]
         self.act = "relu"
@@ -30,9 +30,9 @@ class Exp(MyExp):
 
         # --------------  training config --------------------- #
         self.warmup_epochs = 5
-        self.max_epoch = 30
+        self.max_epoch = 150
         # -----------------  testing config ------------------ #
-        self.test_size = (224, 224)
+        self.test_size = (320, 320)
 
     def get_model(self, sublinear=False):
 

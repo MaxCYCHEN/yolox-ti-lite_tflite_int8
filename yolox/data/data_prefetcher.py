@@ -18,16 +18,19 @@ class DataPrefetcher:
         self.stream = torch.cuda.Stream()
         self.input_cuda = self._input_cuda_for_image
         self.record_stream = DataPrefetcher._record_stream_for_image
+        print("preload()")
         self.preload()
 
     def preload(self):
         try:
+            #print("next(self.loader)")
             self.next_input, self.next_target, _, _ = next(self.loader)
         except StopIteration:
             self.next_input = None
             self.next_target = None
             return
 
+        #print("torch.cuda.stream(self.stream)")
         with torch.cuda.stream(self.stream):
             self.input_cuda()
             self.next_target = self.next_target.cuda(non_blocking=True)

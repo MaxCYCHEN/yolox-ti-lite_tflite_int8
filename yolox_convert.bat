@@ -2,16 +2,16 @@
 set MODEL_SRC_DIR=C:\ProgramData\miniforge3
 set CONDA_ENV=yolox_ti
 
-set YOLOX_DIR=C:\Users\USER\Desktop\ML\yolox-ti-lite_tflite_int8
+set YOLOX_DIR=%~dp0
 
-set MODEL_FILE_NAME=yolox_nano_nu_medicinev2_rgb
-set YOLOX_M_CONFIG=exps/default/yolox_nano_ti_lite_nu.py
-set OUTPUT_DIR=YOLOX_outputs/yolox_nano_ti_lite_nu_medicinev2_rgb
+set MODEL_FILE_NAME=yolox_nano_ti_lite_nu_hg_150
+set YOLOX_M_CONFIG=exps/default/yolox_nano_ti_lite_nu_hg.py
+set OUTPUT_DIR=YOLOX_outputs/yolox_nano_ti_lite_nu_hg_150
+set TRAIN_DATASET=datasets\hagrid_coco\train2017
 
 set YOLOX_PYTORCH=%OUTPUT_DIR%/latest_ckpt.pth
 set YOLOX_ONNX=%OUTPUT_DIR%/%MODEL_FILE_NAME%.onnx
 set CALIB_DATA=%OUTPUT_DIR%/calib_data_320x320_n200_hg.npy
-set TRAIN_DATASET=datasets\medicinev2_coco\train2017
 
 call %MODEL_SRC_DIR%\Scripts\activate.bat
 call conda activate %CONDA_ENV%
