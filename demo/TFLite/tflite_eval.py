@@ -232,7 +232,7 @@ def main():
     my_dataset = coco_format_dataset(data_dir=args.val, anno_file=args.anno_file, no_torgb=args.no_torgb)
 
     # prepare model
-    interpreter = tflite.Interpreter(model_path=args.model)
+    interpreter = tflite.Interpreter(model_path=(args.model.strip('\'').strip('\\')))
     interpreter.allocate_tensors()
 
     input_details = interpreter.get_input_details()

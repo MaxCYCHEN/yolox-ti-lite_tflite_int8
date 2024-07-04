@@ -4,9 +4,8 @@ demo 1 pic:
 python tools/demo.py image -n yolox_nano_ti_lite -c tflite_yolox_nano_ti/320_DW/yolox_nano_320_DW_ti_lite.pth --path assets/dog.jpg --conf 0.25 --nms 0.45 --tsize 320 --save_result --device cpu
 
 train:
-python tools/train.py -f exps/default/yolox_nano_ti_lite_nu.py -d 1 -b 64 --fp16 -o -c tflite_yolox_nano_ti/320_DW/yolox_nano_320_DW_ti_lite.pth
+python tools/train.py -f exps/default/yolox_nano_ti_lite_nu.py -d 1 -b 64 --fp16 -o -c pretrain/tflite_yolox_nano_ti/320_DW/yolox_nano_320_DW_ti_lite.pth
 python tools/train.py -f exps/default/yolox_nano_ti_lite_nu.py -d 1 -b 64 --fp16 -o
-python tools/train.py -f exps/default/yolox_nano_ti_lite_nu.py -d 1 -b 32 --fp16 -o -c YOLOX_outputs\yolox_nano_ti_lite_nu_hg_110\last_epoch_ckpt_hg_110.pth
 
 tensorboard:
 tensorboard --logdir .

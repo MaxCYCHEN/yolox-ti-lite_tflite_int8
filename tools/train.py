@@ -122,6 +122,30 @@ def make_parser():
         default=None,
         nargs=argparse.REMAINDER,
     )
+
+    # Add parsers for some outside changed, like UI notebook
+    parser.add_argument(
+        "-ename", "--experiment_name", default=None, type=str, help="proj name"
+    )
+    parser.add_argument(
+        "-im", "--image_size", default=None, type=int, help="image size"
+    )
+    parser.add_argument(
+        "-epo", "--epochs", default=None, type=int, help="epochs"
+    )
+    parser.add_argument(
+        "-nc", "--num_classes", default=None, type=int, help="num_classes"
+    )
+    parser.add_argument(
+        "--data_dir", default=None, type=str, help="data_dir"
+    )
+    parser.add_argument(
+        "--train_ann", default=None, type=str, help="train_ann"
+    )
+    parser.add_argument(
+        "--val_ann", default=None, type=str, help="val_ann"
+    )
+
     return parser
 
 
@@ -183,6 +207,20 @@ if __name__ == "__main__":
 
     if args.workers is not None:
         exp.data_num_workers = args.workers
+    # Add parsers for some outside changed, like UI notebook    
+    if args.image_size is not None:
+        exp.input_size = (args.image_size, args.image_size)
+        exp.test_size = (args.image_size, args.image_size)
+    if args.epochs is not None:
+        exp.max_epoch = args.epochs
+    if args.num_classes is not None:
+        exp.num_classes = args.num_classes
+    if args.data_dir is not None:
+        exp.data_dir = args.data_dir
+    if args.train_ann is not None:
+        exp.train_ann = args.train_ann
+    if args.val_ann is not None:
+        exp.val_ann = args.val_ann            
 
     dist_url = "auto" if args.dist_url is None else args.dist_url
     launch(

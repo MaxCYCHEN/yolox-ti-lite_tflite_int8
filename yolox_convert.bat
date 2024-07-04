@@ -4,10 +4,10 @@ set CONDA_ENV=yolox_ti
 
 set YOLOX_DIR=%~dp0
 
-set MODEL_FILE_NAME=yolox_nano_ti_lite_nu_hg_150
-set YOLOX_M_CONFIG=exps/default/yolox_nano_ti_lite_nu_hg.py
-set OUTPUT_DIR=YOLOX_outputs/yolox_nano_ti_lite_nu_hg_150
-set TRAIN_DATASET=datasets\hagrid_coco\train2017
+set MODEL_FILE_NAME=yolox_n_nu_320_mytask
+set YOLOX_M_CONFIG=exps/default/yolox_nano_ti_lite_nu.py
+set OUTPUT_DIR=YOLOX_outputs/yolox_n_nu_320
+set TRAIN_DATASET=datasets/medicine_coco/train2017
 
 set YOLOX_PYTORCH=%OUTPUT_DIR%/latest_ckpt.pth
 set YOLOX_ONNX=%OUTPUT_DIR%/%MODEL_FILE_NAME%.onnx
