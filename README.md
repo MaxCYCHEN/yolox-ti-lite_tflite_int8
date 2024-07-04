@@ -133,11 +133,11 @@ onnx2tf -i YOLOX_outputs/yolox_nano_ti_lite_nu/yolox_nano_nu_medicine.onnx -oiqt
 - The output file for deplyment is `vela\generated\yolox_nano_ti_lite_nu_full_integer_quant_vela.tflite.cc`
 ### 6. Evaluate TFlite int8/float Model (Optional)
 ```bash
-python demo\TFLite\tflite_eval.py -m <FULL_INTEGER_QUANT_TFLITE> -a <VAL_ANNOTATION_FILE>
+python demo\TFLite\tflite_eval.py -m <FULL_INTEGER_QUANT_TFLITE> -v <DATASET_PATH> -a <VAL_ANNOTATION_FILE>
 ```
 - example:
 ```bash
-python demo\TFLite\tflite_eval.py -m YOLOX_outputs/yolox_nano_ti_lite_nu/yolox_nano_nu_hg_full_integer_quant.tflite -a hagrid_val.json
+python demo\TFLite\tflite_eval.py -m YOLOX_outputs/yolox_nano_ti_lite_nu/yolox_nano_nu_hg_full_integer_quant.tflite -v datasets\hagrid_coco -a hagrid_val.json
 ```
 - <img src="https://github.com/MaxCYCHEN/yolox-ti-lite_tflite_int8/assets/105192502/eb0f2f47-a001-4bad-a50b-c0e5afdad87f" width="40%">
 
