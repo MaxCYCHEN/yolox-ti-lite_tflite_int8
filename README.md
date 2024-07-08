@@ -62,13 +62,13 @@ python tools/train.py -f exps/default/yolox_nano_ti_lite_nu.py -d 1 -b 64 --fp16
                |----val2017
                         |---------validation img
     ```
-    - update dataset path
+    - update dataset path, for example:
     ```bash
     self.data_dir = "datasets/hagrid_coco"
     self.train_ann = "hagrid_train.json"
     self.val_ann = "hagrid_val.json" 
     ```
-    - update resolution, number of classes and training epoch
+    - update resolution, number of classes and training epoch, for example:
     ```bash
     self.input_size = (320, 320) # resolution
     self.test_size = (320, 320) # resolution
