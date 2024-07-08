@@ -8,9 +8,13 @@ This repository focuses on YOLOX Nano with slight updates, which can be deployed
 
  ## Installation
  - Create a new python env. If you aren't familiar with python env creating, you can reference here: [NuEdgeWise](https://github.com/OpenNuvoton/NuEdgeWise?tab=readme-ov-file#2-installation--env-create)
+ ```bash 
+conda create --name yolox_nu  python=3.10
+conda activate yolox_nu
+```
  - upgrade pip
  ```bash 
-pip3 install --upgrade pip setuptools
+python -m pip install --upgrade pip setuptools
 ```
 **1.** Installing pytorch, basing on the type of system, CUDA version, PyTorch version, and MMCV version [pytorch_locally](https://pytorch.org/get-started/locally/)
 ```bash 
