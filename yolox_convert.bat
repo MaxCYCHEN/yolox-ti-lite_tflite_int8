@@ -1,6 +1,6 @@
 @ ECHO off
 set MODEL_SRC_DIR=C:\ProgramData\miniforge3
-set CONDA_ENV=yolox_ti
+set CONDA_ENV=yolox_nu
 
 set YOLOX_DIR=%~dp0
 
