@@ -72,6 +72,13 @@ def make_parser():
         default=None,
         nargs=argparse.REMAINDER,
     )
+    # Add parsers for some outside changed, like UI notebook
+    parser.add_argument(
+        "-im", "--image_size", default=None, type=int, help="image size"
+    )
+    parser.add_argument(
+        "-nc", "--num_classes", default=None, type=int, help="num_classes"
+    )
 
     return parser
 
@@ -141,6 +148,12 @@ def main():
 
     if not args.experiment_name:
         args.experiment_name = exp.exp_name
+    # Add parsers for some outside changed, like UI notebook    
+    if args.image_size is not None:
+        exp.input_size = (args.image_size, args.image_size)
+        exp.test_size = (args.image_size, args.image_size)
+    if args.num_classes is not None:
+        exp.num_classes = args.num_classes    
 
     model = exp.get_model()
     

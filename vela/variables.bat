@@ -1,3 +1,7 @@
+set IMAGE_SIZE_EXPR="extern const int originalImageSize = 320;"
+set CHANNELS_EXPR="extern const int channelsImageDisplayed = 3;"
+set CLASS_EXPR="extern const int numClasses = 6;"
+
 set IMAGE_SRC_DIR=..\samples
 set IMAGE_SRC_WIDTH=320
 set IMAGE_SRC_HEIGHT=320
@@ -6,8 +10,8 @@ set IMAGE_SRC_HEIGHT=320
 ::set GEN_LABEL_FILE_NAME=Labels
 
 set MODEL_SRC_DIR=generated
-set MODEL_SRC_FILE=yolox_nano_320_DW_ti_lite_full_integer_quant.tflite
-set MODEL_OPTIMISE_FILE=yolox_nano_320_DW_ti_lite_full_integer_quant_vela.tflite
+set MODEL_SRC_FILE=yolox_n_nu_320_mytask_full_integer_quant.tflite
+set MODEL_OPTIMISE_FILE=yolox_n_nu_320_mytask_full_integer_quant_vela.tflite
 ::The vela OPTIMISE_FILE should be SRC_FILE_NAME + _vela
 
 set TEMPLATES_DIR=Tool\tflite2cpp\templates

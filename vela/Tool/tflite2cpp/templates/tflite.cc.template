@@ -16,17 +16,20 @@
 #}
 {{common_template_header}}
 
-#include "Model.hpp"
+#include "BufAttributes.hpp"
+
+#include <cstddef>
+#include <cstdint>
 {% for header in additional_headers %}
 #include "{{header}}"
 {% endfor %}
 
-{% for namespace in namespaces %}
-namespace {{namespace}} {
-{% endfor %}
-
 {% for expression in expressions %}
 {{expression}};
+{% endfor %}
+
+{% for namespace in namespaces %}
+namespace {{namespace}} {
 {% endfor %}
 
 static const uint8_t nn_model[] MODEL_TFLITE_ATTRIBUTE =
