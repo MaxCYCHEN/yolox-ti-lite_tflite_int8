@@ -14,19 +14,19 @@ pip3 install --upgrade pip setuptools
 ```
 **1.** Installing pytorch, basing on the type of system, CUDA version, PyTorch version, and MMCV version [pytorch_locally](https://pytorch.org/get-started/locally/)
 ```bash 
-pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+python -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 ```
 **2.** Installing mmcv, basing on your hardware config [Install with pip](https://mmcv.readthedocs.io/en/latest/get_started/installation.html#install-with-pip)
 ```bash 
-pip install mmcv==2.0.1 -f https://download.openmmlab.com/mmcv/dist/cu118/torch2.0/index.html
+python -m pip install mmcv==2.0.1 -f https://download.openmmlab.com/mmcv/dist/cu118/torch2.0/index.html
 ```
 **3.** Installing other python requirements
 ```bash
-pip3 install --no-input -r requirements.txt
+python -m pip install --no-input -r requirements.txt
 ```
 **4.** Installing the YOLOX
 ```bash
-python setup.py
+python setup.py develop
 ```
 
  ## How to Use
