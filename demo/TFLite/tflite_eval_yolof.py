@@ -34,7 +34,7 @@ def parse_args():
         parser.add_argument('-v', '--val', default='datasets\medicine_coco', help='path to validation dataset')
         #parser.add_argument('-v', '--val', default='datasets\coco', help='path to validation dataset')
         parser.add_argument('-o', '--out-dir', default='tmp/tflite', help='path to output directory')
-        parser.add_argument('-s', '--score-thr', type=float, default=0.001, help='threshould to filter by scores')
+        parser.add_argument('-s', '--score-thr', type=float, default=0.0001, help='threshould to filter by scores')
         parser.add_argument('-pp', '--preprocess-way', default='cv2', const='cv2', nargs='?',
                     choices=['yolox', 'cv2'], help='preprocess-way (default: %(default)s)')
         parser.add_argument("-a", "--anno_file", type=str, 
@@ -104,6 +104,7 @@ class coco_format_dataset():
         file_name = self.annotations[index][1]
         img_file = os.path.join(self.data_dir, self.img_dir_name, file_name)
         img = cv2.imread(img_file)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         assert img is not None
 
         return img
@@ -281,10 +282,10 @@ def main():
         if output_dtype == np.int8:
             outputs_1 = output_scale * (outputs_1.astype(np.float32) - output_zero)
             outputs_2 = output_details[1]['quantization'][0] * (outputs_2.astype(np.float32) - output_details[1]['quantization'][1])
-        #anchor1 = [12, 18,  37, 49,  52,132]
-        #anchor2 = [115, 73, 119,199, 242,238]
-        anchor1 = [10, 21,  15, 15,  15, 22]
-        anchor2 = [20, 50,  37, 28,  31, 43]
+        anchor1 = [12, 18,  37, 49,  52,132]
+        anchor2 = [115, 73, 119,199, 242,238]
+        #anchor1 = [10, 21,  15, 15,  15, 22]
+        #anchor2 = [20, 50,  37, 28,  31, 43]
 
         num_boxs = len(anchor1)/2
         class_num = int((outputs_1.shape[2] / num_boxs) - 5)

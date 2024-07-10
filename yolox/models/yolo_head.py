@@ -217,9 +217,19 @@ class YOLOXHead(nn.Module):
         else:
             self.hw = [x.shape[-2:] for x in outputs]
             # [batch, n_anchors_all, 85]
+            # update to No Transpose for NHWC format (tflite)
+            #print(outputs[0].shape, outputs[1].shape, outputs[2].shape)
+            outputs[0] = outputs[0].permute(0, 2, 3, 1)
+            outputs[1] = outputs[1].permute(0, 2, 3, 1)
+            outputs[2] = outputs[2].permute(0, 2, 3, 1)
             outputs = torch.cat(
-                [x.flatten(start_dim=2) for x in outputs], dim=2
-            ).permute(0, 2, 1)
+                [x.flatten(start_dim=1, end_dim=2) for x in outputs], dim=1
+            )
+            #print(outputs.shape)
+            # original yolox style
+            #outputs = torch.cat(
+            #    [x.flatten(start_dim=2) for x in outputs], dim=2
+            #).permute(0, 2, 1)
             if self.decode_in_inference:
                 return self.decode_outputs(outputs, dtype=xin[0].type())
             else:
@@ -257,7 +267,8 @@ class YOLOXHead(nn.Module):
 
         grids = torch.cat(grids, dim=1).type(dtype)
         strides = torch.cat(strides, dim=1).type(dtype)
-
+        # update to No Transpose for NHWC format (tflite)
+        # Decode is same as original yolox
         outputs[..., :2] = (outputs[..., :2] + grids) * strides
         outputs[..., 2:4] = torch.exp(outputs[..., 2:4]) * strides
         return outputs
