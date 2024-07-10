@@ -1,8 +1,9 @@
 # YOLOX-ti-lite-nu tflite version for MCU with/wo NPU device
 This repository focuses on YOLOX Nano with slight updates, which can be deployed on Nuvoton devices.   
 
- - add `exps\default\yolox_nano_ti_lite_nu.py` for 320X320 depthwise YOLOX-ti-lite version.
+ - Add `exps\default\yolox_nano_ti_lite_nu.py` for 320X320 depthwise YOLOX-ti-lite version.
  - Add int8/f32 tflite mAP evaluating script: `demo\TFLite\tflite_eval`. Support models: tflite_yolox_nano_ti, tflite_yolofastest_v1(mAP is lower)
+ - Update yolox nano model to fully support ARM vela compiler. Detail: [Remove Transpose](https://github.com/MaxCYCHEN/yolox-ti-lite_tflite_int8/blob/main/assets/README.md)  
  - This repository is a fork of [TexasInstruments/edgeai-yolox](https://github.com/TexasInstruments/edgeai-yolox) and [motokimura/yolox-ti-lite_tflite](https://github.com/motokimura/yolox-ti-lite_tflite).
  - You can also reference the original [readme](https://github.com/MaxCYCHEN/yolox-ti-lite_tflite_int8/blob/main/README_motokimura.md) or [edgeai-yolox](https://github.com/TexasInstruments/edgeai-yolox)
 
