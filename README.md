@@ -18,6 +18,7 @@ conda activate yolox_nu
 python -m pip install --upgrade pip setuptools
 ```
 **1.** Installing pytorch, basing on the type of system, CUDA version, PyTorch version, and MMCV version [pytorch_locally](https://pytorch.org/get-started/locally/)
+- The below example is CUDA needed. If cpu only, please check [pytorch_locally](https://pytorch.org/get-started/locally/). 
 ```bash 
 python -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 ```
