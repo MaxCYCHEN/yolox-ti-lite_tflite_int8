@@ -16,6 +16,11 @@ import tensorflow.lite as tflite
 from utils import COCO_CLASSES, multiclass_nms_class_aware, preprocess, postprocess, vis, yolofastest_preprocess, yolofastest_postprocess, easy_preprocess
 from pycocotools.coco import COCO
 
+# yolo_fastest anchors
+#anchor1 = [12, 18,  37, 49,  52,132]
+#anchor2 = [115, 73, 119,199, 242,238]
+anchor1 = [41, 28,  26, 50,  36, 38]
+anchor2 = [37, 50,  86, 68,  53,112]
 # ToDo, tmp global var
 per_class_mAP = True
 
@@ -282,10 +287,6 @@ def main():
         if output_dtype == np.int8:
             outputs_1 = output_scale * (outputs_1.astype(np.float32) - output_zero)
             outputs_2 = output_details[1]['quantization'][0] * (outputs_2.astype(np.float32) - output_details[1]['quantization'][1])
-        anchor1 = [12, 18,  37, 49,  52,132]
-        anchor2 = [115, 73, 119,199, 242,238]
-        #anchor1 = [10, 21,  15, 15,  15, 22]
-        #anchor2 = [20, 50,  37, 28,  31, 43]
 
         num_boxs = len(anchor1)/2
         class_num = int((outputs_1.shape[2] / num_boxs) - 5)
