@@ -27,6 +27,7 @@ python -m pip install torch torchvision torchaudio --index-url https://download.
 python -m pip install mmcv==2.0.1 -f https://download.openmmlab.com/mmcv/dist/cu118/torch2.0/index.html
 ```
 **3.** Installing other python requirements
+- download this repo and open this directory.
 ```bash
 python -m pip install --no-input -r requirements.txt
 ```
